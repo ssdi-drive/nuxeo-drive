@@ -305,6 +305,13 @@ class Application(QApplication):
             tray_icon_menu.addAction(register_server_action)
             tray_icon_menu.addSeparator()
 
+        pdf_dir = os.path.join(os.path.expanduser(u'~'), u'mypdffiles')
+        open_pdf_folder = lambda: self.controller.open_local_file(
+                pdf_dir)
+        open_pdf_folder_action = QtGui.QAction(
+                "Open PDF folder", tray_icon_menu, triggered=open_pdf_folder)
+        tray_icon_menu.addAction(open_pdf_folder_action)
+
         # HTTP proxy settings
         proxy_settings_action = QtGui.QAction("&Proxy settings",
                                     tray_icon_menu,
