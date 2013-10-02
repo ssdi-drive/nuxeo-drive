@@ -4,6 +4,7 @@ import unittest
 import tempfile
 import hashlib
 import shutil
+import time
 
 from nxdrive.utils import safe_long_path
 from nxdrive.model import LastKnownState
@@ -172,3 +173,12 @@ class IntegrationTestCase(unittest.TestCase):
 
     def wait(self):
         self.root_remote_client.wait()
+
+    def synchronize(self, controller):
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        controller.synchronizer.loop(delay=0.1, max_loops=1)
+
+    def get_resource_path(self, name):
+        tests_path = os.path.dirname(__file__)
+        return os.path.join(*[tests_path, 'resources', name])
