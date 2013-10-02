@@ -6,6 +6,7 @@ import hashlib
 import os
 import shutil
 import re
+import subprocess
 
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import safe_filename
@@ -261,3 +262,16 @@ class LocalClient(object):
 
         raise ValueError("Failed to de-duplicate '%s' under '%s'" % (
             orig_name, parent))
+
+    def convert_to_pdf(self, file_path):
+        """Convert the given file to PDF in a dedicated directory"""
+        pdf_dir = os.path.join(os.path.expanduser(u'~'), u'mypdffiles')
+        if not os.path.exists(pdf_dir):
+            os.makedirs(pdf_dir)
+        p = subprocess.Popen(['libreoffice', '--headless', '--invisible',
+                          '--convert-to', 'pdf', '--outdir', pdf_dir,
+                          file_path])
+        p.communicate()
+        filename = os.path.splitext(os.path.basename(file_path))[0]
+        pdf_file_path = os.path.join(pdf_dir, filename) + '.pdf'
+        return pdf_file_path

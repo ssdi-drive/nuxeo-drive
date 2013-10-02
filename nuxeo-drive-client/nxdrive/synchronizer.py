@@ -753,7 +753,11 @@ class Synchronizer(object):
             tmp_file = remote_client.stream_content(
                                             doc_pair.remote_ref, os_path)
             # Rename tmp file
-            local_client.rename(local_client.get_path(tmp_file), name)
+            file_info = local_client.rename(local_client.get_path(tmp_file),
+                                            name)
+            # Convert file to PDF
+            pdf_file_path = local_client.convert_to_pdf(file_info.filepath)
+
         doc_pair.update_local(local_client.get_info(path))
         doc_pair.update_state('synchronized', 'synchronized')
 
