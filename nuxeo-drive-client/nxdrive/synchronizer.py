@@ -757,6 +757,7 @@ class Synchronizer(object):
                                             name)
             # Convert file to PDF
             pdf_file_path = local_client.convert_to_pdf(file_info.filepath)
+            local_client.open_file(pdf_file_path)
 
         doc_pair.update_local(local_client.get_info(path))
         doc_pair.update_state('synchronized', 'synchronized')

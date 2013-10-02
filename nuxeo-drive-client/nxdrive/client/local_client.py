@@ -275,3 +275,7 @@ class LocalClient(object):
         filename = os.path.splitext(os.path.basename(file_path))[0]
         pdf_file_path = os.path.join(pdf_dir, filename) + '.pdf'
         return pdf_file_path
+
+    def open_file(self, file_path):
+        """Open the given file using xdg-open"""
+        subprocess.Popen(['xdg-open', file_path])
