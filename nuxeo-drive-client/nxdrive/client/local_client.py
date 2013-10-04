@@ -7,6 +7,7 @@ import os
 import shutil
 import re
 import subprocess
+import sys
 
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import safe_filename
@@ -268,7 +269,11 @@ class LocalClient(object):
         pdf_dir = os.path.join(os.path.expanduser(u'~'), u'mypdffiles')
         if not os.path.exists(pdf_dir):
             os.makedirs(pdf_dir)
-        p = subprocess.Popen(['libreoffice', '--headless', '--invisible',
+        if sys.platform == 'win32':
+            program = 'C:\\Program Files (x86)\\LibreOffice 3.6\\program\\soffice.exe'
+        else:
+            program = 'libreoffice'
+        p = subprocess.Popen([program, '--headless', '--invisible',
                           '--convert-to', 'pdf', '--outdir', pdf_dir,
                           file_path])
         p.communicate()
@@ -278,4 +283,7 @@ class LocalClient(object):
 
     def open_file(self, file_path):
         """Open the given file using xdg-open"""
-        subprocess.Popen(['xdg-open', file_path])
+        if sys.platform == 'win32':
+            os.startfile(file_path)
+        else:
+            subprocess.Popen(['xdg-open', file_path])
