@@ -26,3 +26,5 @@ MANIFEST
 .pydevproject
 debian
 venv
+.idea
+**/.idea
