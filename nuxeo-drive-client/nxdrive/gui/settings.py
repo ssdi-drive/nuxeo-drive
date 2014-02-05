@@ -19,14 +19,13 @@ except ImportError:
 log = get_logger(__name__)
 
 # Keep Qt an optional dependency for now
-QtGui, QDialog = None, object
+QtGui, QDialog, QtWidgets = None, object, None
 try:
-    from PyQt4 import QtGui
-    from PyQt4 import QtCore
-    QDialog = QtGui.QDialog
-    log.debug("Qt / PyQt4 successfully imported")
+    from PyQt5 import QtCore, QtGui, QtWidgets
+    QDialog = QtWidgets.QDialog
+    log.debug("Qt / PyQt5 successfully imported")
 except ImportError:
-    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
+    log.warning("Qt / PyQt5 is not installed: GUI is disabled")
     pass
 
 
@@ -56,7 +55,7 @@ class Dialog(QDialog):
                  title=None, callback=None):
         super(Dialog, self).__init__()
         if QtGui is None:
-            raise RuntimeError("PyQt4 is not installed.")
+            raise RuntimeError("PyQt5 is not installed.")
         if title is not None:
             self.setWindowTitle(title)
         icon = find_icon('nuxeo_drive_icon_64.png')
@@ -77,48 +76,48 @@ class Dialog(QDialog):
         account_box = self.get_account_box(sb_field_spec)
         proxy_box = self.get_proxy_box(proxy_field_spec)
         about_box = self.get_about_box(version)
-        self.tabs = QtGui.QTabWidget()
+        self.tabs = QtWidgets.QTabWidget()
         self.tabs.addTab(account_box, 'Accounts')
         self.tabs.addTab(proxy_box, 'Proxy settings')
         self.tabs.addTab(about_box, 'About')
 
         # Message
-        self.message_area = QtGui.QLabel()
+        self.message_area = QtWidgets.QLabel()
         self.message_area.setWordWrap(True)
 
         # Buttons
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok
-                                           | QtGui.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok
+                                           | QtWidgets.QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.tabs)
         mainLayout.addWidget(self.message_area)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
     def get_account_box(self, field_spec):
-        box = QtGui.QGroupBox()
+        box = QtWidgets.QGroupBox()
         box.setFixedHeight(200)
-        layout = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout()
         for i, spec in enumerate(field_spec):
             field_id = spec['id']
             value = spec.get('value')
             if field_id == 'update_password':
                 if spec.get('display'):
-                    field = QtGui.QCheckBox(spec['label'])
+                    field = QtWidgets.QCheckBox(spec['label'])
                     # Set listener to enable / disable password field
                     field.stateChanged.connect(self.enable_password)
                     layout.addWidget(field, i + 1, 1)
                     self.sb_fields[field_id] = field
             else:
-                label = QtGui.QLabel(spec['label'])
-                line_edit = QtGui.QLineEdit()
+                label = QtWidgets.QLabel(spec['label'])
+                line_edit = QtWidgets.QLineEdit()
                 if value is not None:
                     line_edit.setText(str(value))
                 if spec.get('secret', False):
-                    line_edit.setEchoMode(QtGui.QLineEdit.Password)
+                    line_edit.setEchoMode(QtWidgets.QLineEdit.Password)
                 enabled = spec.get('enabled', True)
                 line_edit.setEnabled(enabled)
                 line_edit.textChanged.connect(self.clear_message)
@@ -137,16 +136,16 @@ class Dialog(QDialog):
         self.message_area.clear()
 
     def get_proxy_box(self, field_spec):
-        box = QtGui.QGroupBox()
-        layout = QtGui.QGridLayout()
+        box = QtWidgets.QGroupBox()
+        layout = QtWidgets.QGridLayout()
         for i, spec in enumerate(field_spec):
             field_id = spec['id']
-            label = QtGui.QLabel(spec['label'])
+            label = QtWidgets.QLabel(spec['label'])
             value = spec.get('value')
             items = spec.get('items')
             # Combo box
             if items is not None:
-                field = QtGui.QComboBox()
+                field = QtWidgets.QComboBox()
                 field.addItems(items)
                 if value is not None:
                     field.setCurrentIndex(items.index(value))
@@ -157,7 +156,7 @@ class Dialog(QDialog):
                             self.enable_manual_settings)
             elif field_id == 'proxy_authenticated':
                 # Checkbox
-                field = QtGui.QCheckBox(spec['label'])
+                field = QtWidgets.QCheckBox(spec['label'])
                 if value is not None:
                     field.setChecked(value)
                 # Set listener to enable / disable fields depending on
@@ -168,13 +167,13 @@ class Dialog(QDialog):
             else:
                 # Text input
                 if field_id == 'proxy_exceptions':
-                    field = QtGui.QTextEdit()
+                    field = QtWidgets.QTextEdit()
                 else:
-                    field = QtGui.QLineEdit()
+                    field = QtWidgets.QLineEdit()
                 if value is not None:
                     field.setText(value)
                 if field_id == 'proxy_password':
-                    field.setEchoMode(QtGui.QLineEdit.Password)
+                    field.setEchoMode(QtWidgets.QLineEdit.Password)
             enabled = spec.get('enabled', True)
             field.setEnabled(enabled)
             width = spec.get('width', DEFAULT_FIELD_WIDGET_WIDTH)
@@ -206,33 +205,33 @@ class Dialog(QDialog):
         self.message_area.setText(message)
 
     def get_about_box(self, version_number):
-        box = QtGui.QGroupBox()
-        layout = QtGui.QVBoxLayout()
+        box = QtWidgets.QGroupBox()
+        layout = QtWidgets.QVBoxLayout()
 
         # Version
-        version_label = QtGui.QLabel('Version')
+        version_label = QtWidgets.QLabel('Version')
         version_label.setStyleSheet(BOLD_STYLE)
         layout.addWidget(version_label)
-        version_widget = QtGui.QLabel('Nuxeo Drive v' + version_number)
+        version_widget = QtWidgets.QLabel('Nuxeo Drive v' + version_number)
         version_widget.setContentsMargins(20, 0, 0, 0)
         layout.addWidget(version_widget)
 
         # License
-        license_label = QtGui.QLabel('License')
+        license_label = QtWidgets.QLabel('License')
         license_label.setStyleSheet(BOLD_STYLE)
         license_label.setContentsMargins(0, 20, 0, 0)
         layout.addWidget(license_label)
-        license_widget = QtGui.QLabel(LICENSE_LINK)
+        license_widget = QtWidgets.QLabel(LICENSE_LINK)
         license_widget.setOpenExternalLinks(True)
         license_widget.setContentsMargins(20, 0, 0, 0)
         layout.addWidget(license_widget)
 
         # Source code
-        source_label = QtGui.QLabel('Source code')
+        source_label = QtWidgets.QLabel('Source code')
         source_label.setStyleSheet(BOLD_STYLE)
         source_label.setContentsMargins(0, 20, 0, 0)
         layout.addWidget(source_label)
-        source_widget = QtGui.QLabel(SOURCE_LINK)
+        source_widget = QtWidgets.QLabel(SOURCE_LINK)
         source_widget.setOpenExternalLinks(True)
         source_widget.setContentsMargins(20, 0, 0, 0)
         layout.addWidget(source_widget)
@@ -253,11 +252,11 @@ class Dialog(QDialog):
 
     def read_field_values(self, fields, values):
         for id_, widget in fields.items():
-            if isinstance(widget, QtGui.QComboBox):
+            if isinstance(widget, QtWidgets.QComboBox):
                 value = widget.currentText()
-            elif isinstance(widget, QtGui.QCheckBox):
+            elif isinstance(widget, QtWidgets.QCheckBox):
                 value = widget.isChecked()
-            elif isinstance(widget, QtGui.QTextEdit):
+            elif isinstance(widget, QtWidgets.QTextEdit):
                 value = widget.toPlainText()
             else:
                 value = widget.text()
@@ -279,8 +278,8 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
                    " your Internet connection and retry.")
 
     if QtGui is None:
-        # Qt / PyQt4 is not installed
-        log.error("Qt / PyQt4 is not installed:"
+        # Qt / PyQt5 is not installed
+        log.error("Qt / PyQt5 is not installed:"
                   " use commandline options for binding a server.")
         return False
 
@@ -484,7 +483,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
 
     if app is None:
         log.debug("Launching Qt prompt to manage settings.")
-        QtGui.QApplication([])
+        QtWidgets.QApplication([])
     dialog = Dialog(sb_field_spec, proxy_field_spec, version,
                     title="Nuxeo Drive - Settings",
                     callback=validate)

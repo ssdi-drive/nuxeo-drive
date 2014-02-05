@@ -13,15 +13,14 @@ log = get_logger(__name__)
 TIME_FORMAT_PATTERN = '%d %b %H:%M'
 
 # Keep Qt an optional dependency for now
-QtGui, QApplication, QObject = None, object, object
+QtGui, QApplication, QObject, QtCore, QtWidgets = None, object, object, None, None
 try:
-    from PyQt4 import QtGui
-    from PyQt4 import QtCore
-    QApplication = QtGui.QApplication
+    from PyQt5 import QtWidgets, QtCore, QtGui
+    QApplication = QtWidgets.QApplication
     QObject = QtCore.QObject
-    log.debug("Qt / PyQt4 successfully imported")
+    log.debug("Qt / PyQt5 successfully imported")
 except ImportError:
-    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
+    log.warning("Qt / PyQt5 is not installed: GUI is disabled ")
     pass
 
 
@@ -107,13 +106,13 @@ class Application(QApplication):
         self.state = 'paused'
         self.quit_on_stop = False
         self._setup_systray()
-        self.tray_icon_menu = QtGui.QMenu()
+        self.tray_icon_menu = QtWidgets.QMenu()
         self.binding_info = {}
         self.binding_menu_actions = {}
         self.global_menu_actions = {}
         self.update_menu()
         self._tray_icon.setContextMenu(self.tray_icon_menu)
-
+        
         # Start long running synchronization thread
         self.start_synchronization_thread()
 
@@ -288,7 +287,7 @@ class Application(QApplication):
                 self.communicator.menu.emit()
 
     def _setup_systray(self):
-        self._tray_icon = QtGui.QSystemTrayIcon()
+        self._tray_icon = QtWidgets.QSystemTrayIcon()
         self._tray_icon.setToolTip('Nuxeo Drive')
         self.update_running_icon()
         self._tray_icon.show()
@@ -311,7 +310,7 @@ class Application(QApplication):
         if not self.controller.list_server_bindings():
             # Add global status action if needed
             if global_status_action is None:
-                global_status_action = QtGui.QAction(
+                global_status_action = QtWidgets.QAction(
                                             "Waiting for server registration",
                                             self.tray_icon_menu)
                 global_status_action.setEnabled(False)
@@ -319,7 +318,7 @@ class Application(QApplication):
                                          before_action=settings_action)
                 self.global_menu_actions['global_status'] = (
                                                         global_status_action)
-                global_status_sep = QtGui.QAction(self.tray_icon_menu)
+                global_status_sep = QtWidgets.QAction(self.tray_icon_menu)
                 global_status_sep.setSeparator(True)
                 self._insert_menu_action(global_status_sep,
                                          before_action=settings_action)
@@ -345,7 +344,7 @@ class Application(QApplication):
             if sb_actions is None:
                 sb_actions = {}
                 # Separator
-                binding_separator = QtGui.QAction(self.tray_icon_menu)
+                binding_separator = QtWidgets.QAction(self.tray_icon_menu)
                 binding_separator.setSeparator(True)
                 self._insert_menu_action(binding_separator,
                                          before_action=settings_action)
@@ -357,11 +356,9 @@ class Application(QApplication):
                 open_folder = (lambda folder_path=binding_info.folder_path:
                                self.controller.open_local_file(
                                                             folder_path))
-                open_folder_action = QtGui.QAction(open_folder_msg,
+                open_folder_action = QtWidgets.QAction(open_folder_msg,
                                                    self.tray_icon_menu)
-                self.connect(open_folder_action,
-                             QtCore.SIGNAL('triggered()'),
-                             open_folder)
+                open_folder_action.triggered.connect(open_folder);
                 self._insert_menu_action(open_folder_action,
                                          before_action=binding_separator)
                 sb_actions['open_folder'] = open_folder_action
@@ -371,16 +368,15 @@ class Application(QApplication):
                 open_server_link = (
                                 lambda server_link=binding_info.server_link:
                                 self.controller.open_local_file(server_link))
-                server_link_action = QtGui.QAction(server_link_msg,
+                server_link_action = QtWidgets.QAction(server_link_msg,
                                                    self.tray_icon_menu)
-                self.connect(server_link_action, QtCore.SIGNAL('triggered()'),
-                             open_server_link)
+                server_link_action.triggered.connect(open_server_link)
                 self._insert_menu_action(server_link_action,
                                          before_action=binding_separator)
                 sb_actions['server_link'] = server_link_action
 
                 # Pending status
-                status_action = QtGui.QAction(self.tray_icon_menu)
+                status_action = QtWidgets.QAction(self.tray_icon_menu)
                 status_action.setEnabled(False)
                 self._set_pending_status(status_action, binding_info, sb)
                 self._insert_menu_action(status_action,
@@ -428,7 +424,7 @@ class Application(QApplication):
 
         # Settings
         if settings_action is None:
-            settings_action = QtGui.QAction("Settings",
+            settings_action = QtWidgets.QAction("Settings",
                                         self.tray_icon_menu,
                                         triggered=self.settings)
             self.tray_icon_menu.addAction(settings_action)
@@ -441,7 +437,7 @@ class Application(QApplication):
         # Quit
         quit_action = self.global_menu_actions.get('quit')
         if quit_action is None:
-            quit_action = QtGui.QAction("Quit", self.tray_icon_menu,
+            quit_action = QtWidgets.QAction("Quit", self.tray_icon_menu,
                                         triggered=self.action_quit)
             if self.state == 'stopping':
                 quit_action.setEnabled(False)
@@ -462,7 +458,7 @@ class Application(QApplication):
 
     def _insert_last_ended_sync_action(self, last_ended_sync_date,
                                        before_action):
-        last_ended_sync_action = QtGui.QAction(self.tray_icon_menu)
+        last_ended_sync_action = QtWidgets.QAction(self.tray_icon_menu)
         last_ended_sync_action.setEnabled(False)
         self._set_last_ended_sync(last_ended_sync_action, last_ended_sync_date)
         self._insert_menu_action(last_ended_sync_action,
