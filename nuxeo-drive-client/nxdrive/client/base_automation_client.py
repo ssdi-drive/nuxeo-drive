@@ -4,24 +4,18 @@ import sys
 import base64
 import json
 import urllib2
+import pycurl
 import mimetypes
 import random
 import time
 import os
 import tempfile
 from urllib import urlencode
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
-from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
-from nxdrive.utils import force_decode
-from nxdrive.utils import deprecated
-from urllib2 import ProxyHandler
-from urlparse import urlparse
 
 
 log = get_logger(__name__)
@@ -67,21 +61,27 @@ def get_proxies_for_handler(proxy_settings):
         return proxies, proxy_exceptions
 
 
-def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
-    if proxies is None:
-        # No proxies specified, use default proxy detection
-        return urllib2.ProxyHandler()
-    else:
-        # Use specified proxies (can be empty to disable default detection)
-        if proxies:
-            if proxy_exceptions is not None and url is not None:
-                hostname = urlparse(url).hostname
-                for exception in proxy_exceptions:
-                    if exception == hostname:
-                        # Server URL is in proxy exceptions,
-                        # don't use any proxy
-                        proxies = {}
-        return urllib2.ProxyHandler(proxies)
+# def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
+#     if proxies is None:
+#         # No proxies specified, use default proxy detection
+#         return urllib2.ProxyHandler()
+#     else:
+#         # Use specified proxies (can be empty to disable default detection)
+#         if proxies:
+#             if proxy_exceptions is not None and url is not None:
+#                 hostname = urlparse(url).hostname
+#                 for exception in proxy_exceptions:
+#                     if exception == hostname:
+#                         # Server URL is in proxy exceptions,
+#                         # don't use any proxy
+#                         proxies = {}
+#         return urllib2.ProxyHandler(proxies)
+
+
+class PycURLHTTPError(Exception):
+
+    def __init__(self, code):
+        self.code = code
 
 
 class Unauthorized(Exception):
@@ -165,27 +165,29 @@ class BaseAutomationClient(object):
         self.client_version = client_version
         self._update_auth(password=password, token=token)
 
-        self.cookie_jar = cookie_jar
-        cookie_processor = urllib2.HTTPCookieProcessor(
-            cookiejar=cookie_jar)
+        # TODO: handle CookieJar
+#         self.cookie_jar = cookie_jar
+#         cookie_processor = urllib2.HTTPCookieProcessor(
+#             cookiejar=cookie_jar)
 
-        # Get proxy handler
-        proxy_handler = get_proxy_handler(proxies,
-                                          proxy_exceptions=proxy_exceptions,
-                                          url=self.server_url)
+        # TODO: handle proxy
+#         Get proxy handler
+#         proxy_handler = get_proxy_handler(proxies,
+#                                           proxy_exceptions=proxy_exceptions,
+#                                           url=self.server_url)
 
         # Build URL openers
-        self.opener = urllib2.build_opener(cookie_processor, proxy_handler)
-        self.streaming_opener = urllib2.build_opener(cookie_processor,
-                                                     proxy_handler,
-                                                     *get_handlers())
+#         self.opener = urllib2.build_opener(cookie_processor, proxy_handler)
+#         self.streaming_opener = urllib2.build_opener(cookie_processor,
+#                                                      proxy_handler,
+#                                                      *get_handlers())
 
         # Set Proxy flag
         self.is_proxy = False
-        for handler in self.opener.handlers:
-            if isinstance(handler, ProxyHandler):
-                if handler.proxies:
-                    self.is_proxy = True
+#         for handler in self.opener.handlers:
+#             if isinstance(handler, ProxyHandler):
+#                 if handler.proxies:
+#                     self.is_proxy = True
 
         self.automation_url = server_url + 'site/automation/'
         self.batch_upload_url = 'batch/upload'
@@ -203,48 +205,32 @@ class BaseAutomationClient(object):
         ) % (self.server_url)
         url = self.automation_url
         headers = self._get_common_headers()
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r",
-            url, headers, cookies)
-        req = urllib2.Request(url, headers=headers)
+#         cookies = self._get_cookies()
+#         log.trace("Calling %s with headers %r and cookies %r",
+#             url, headers, cookies)
+        log.trace("Calling %s with headers %r",
+            url, headers)
+        req = pycurl.Curl()
+        req.setopt(pycurl.URL, str(url))
+        req.setopt(pycurl.HTTPHEADER, headers)
+        req.setopt(pycurl.TIMEOUT, self.timeout)
         try:
-            response = json.loads(self.opener.open(
-                req, timeout=self.timeout).read())
-        except urllib2.HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                raise Unauthorized(self.server_url, self.user_id, e.code)
-            else:
-                msg = base_error_message + "\nHTTP error %d" % e.code
-                if hasattr(e, 'msg'):
-                    msg = msg + ": " + e.msg
-                e.msg = msg
-                raise e
-        except urllib2.URLError as e:
-            msg = base_error_message
-            if hasattr(e, 'message') and e.message:
-                msg = msg + force_decode(": " + e.message)
-            elif hasattr(e, 'reason') and e.reason:
-                if (hasattr(e.reason, 'message')
-                    and e.reason.message):
-                    msg = msg + force_decode(": " + e.reason.message)
-                elif (hasattr(e.reason, 'strerror')
-                    and e.reason.strerror):
-                    msg = msg + force_decode(": " + e.reason.strerror)
-            if self.is_proxy:
-                msg = (msg + "\nPlease check your Internet connection,"
-                       + " make sure the Nuxeo server URL is valid"
-                       + " and check the proxy settings.")
-            else:
-                msg = (msg + "\nPlease check your Internet connection"
-                       + " and make sure the Nuxeo server URL is valid.")
-            e.msg = msg
-            raise e
+            _, body = self._perform_request(req)
         except Exception as e:
             msg = base_error_message
             if hasattr(e, 'msg'):
                 msg = msg + ": " + e.msg
             e.msg = msg
             raise e
+
+        status_code = int(req.getinfo(pycurl.HTTP_CODE))
+        if status_code == 401 or status_code == 403:
+            raise Unauthorized(self.server_url, self.user_id, status_code)
+        elif status_code >= 400:
+            msg = base_error_message + "\nHTTP error %d" % status_code
+            raise ValueError(msg)
+
+        response = json.loads(body)
         self.operations = {}
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
@@ -260,14 +246,14 @@ class BaseAutomationClient(object):
             self._check_params(command, params)
 
         url = self.automation_url + command
-        headers = {
-            "Content-Type": "application/json+nxrequest",
-            "Accept": "application/json+nxentity, */*",
-            "X-NXDocumentProperties": "*",
-        }
+        headers = [
+            "Content-Type: application/json+nxrequest",
+            "Accept: application/json+nxentity, */*",
+            "X-NXDocumentProperties: *",
+        ]
         if void_op:
-            headers.update({"X-NXVoidOperation": "true"})
-        headers.update(self._get_common_headers())
+            headers.extend("X-NXVoidOperation: true")
+        headers.extend(self._get_common_headers())
 
         json_struct = {'params': {}}
         for k, v in params.items():
@@ -285,96 +271,31 @@ class BaseAutomationClient(object):
         log.trace("Dumping JSON structure: %s", json_struct)
         data = json.dumps(json_struct)
 
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r, cookies %r"
+#         cookies = self._get_cookies()
+#         log.trace("Calling %s with headers %r, cookies %r"
+#                   " and JSON payload %r",
+#             url, headers, cookies,  data)
+        log.trace("Calling %s with headers %r "
                   " and JSON payload %r",
-            url, headers, cookies,  data)
-        req = urllib2.Request(url, data, headers)
+            url, headers, data)
+        req = pycurl.Curl()
+        req.setopt(pycurl.URL, str(url))
+        req.setopt(pycurl.HTTPHEADER, headers)
         timeout = self.timeout if timeout == -1 else timeout
+        req.setopt(pycurl.TIMEOUT, self.timeout)
+        req.setopt(pycurl.POST, 1)
+        req.setopt(pycurl.POSTFIELDS, data)
         try:
-            resp = self.opener.open(req, timeout=timeout)
+            headers, body = self._perform_request(req)
         except Exception as e:
             self._log_details(e)
             raise
 
-        return self._read_response(resp, url)
+        status_code = int(req.getinfo(pycurl.HTTP_CODE))
+        if status_code >= 400:
+            raise PycURLHTTPError(status_code)
 
-    @deprecated
-    def execute_with_blob(self, command, blob_content, filename, **params):
-        """Execute an Automation operation with a blob input
-
-        Beware that the whole content is loaded in memory when calling this.
-        """
-        self._check_params(command, params)
-        url = self.automation_url.encode('ascii') + command
-
-        # Create data by hand :(
-        boundary = "====Part=%s=%s===" % (str(time.time()).replace('.', '='),
-                                          random.randint(0, 1000000000))
-        headers = {
-            "Accept": "application/json+nxentity, */*",
-            "Content-Type": ('multipart/related;boundary="%s";'
-                             'type="application/json+nxrequest";'
-                             'start="request"')
-            % boundary,
-        }
-        headers.update(self._get_common_headers())
-
-        container = MIMEMultipart("related",
-                type="application/json+nxrequest",
-                start="request")
-
-        d = {'params': params}
-        json_data = json.dumps(d)
-        json_part = MIMEBase("application", "json+nxrequest")
-        json_part.add_header("Content-ID", "request")
-        json_part.set_payload(json_data)
-        container.attach(json_part)
-
-        ctype, _ = mimetypes.guess_type(filename)
-        if ctype:
-            maintype, subtype = ctype.split('/', 1)
-        else:
-            maintype, subtype = "application", "octet-stream"
-        blob_part = MIMEBase(maintype, subtype)
-        blob_part.add_header("Content-ID", "input")
-        blob_part.add_header("Content-Transfer-Encoding", "binary")
-
-        # Quote UTF-8 filenames even though JAX-RS does not seem to be able
-        # to retrieve them as per: https://tools.ietf.org/html/rfc5987
-        filename = safe_filename(filename)
-        quoted_filename = urllib2.quote(filename.encode('utf-8'))
-        content_disposition = ("attachment; filename*=UTF-8''%s"
-                                % quoted_filename)
-        blob_part.add_header("Content-Disposition", content_disposition)
-        blob_part.set_payload(blob_content)
-        container.attach(blob_part)
-
-        data = (
-            "--%s\r\n"
-            "%s\r\n"
-            "--%s\r\n"
-            "%s\r\n"
-            "--%s--"
-        ) % (
-            boundary,
-            json_part.as_string(),
-            boundary,
-            blob_part.as_string(),
-            boundary,
-        )
-
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r for file %s",
-            url, headers, cookies, filename)
-        req = urllib2.Request(url, data, headers)
-        try:
-            resp = self.opener.open(req, timeout=self.blob_timeout)
-        except Exception as e:
-            self._log_details(e)
-            raise
-
-        return self._read_response(resp, url)
+        return self._read_response(headers, body, url)
 
     def execute_with_blob_streaming(self, command, file_path, filename=None,
                                     mime_type=None, **params):
@@ -415,16 +336,16 @@ class BaseAutomationClient(object):
         # to retrieve them as per: https://tools.ietf.org/html/rfc5987
         filename = safe_filename(filename)
         quoted_filename = urllib2.quote(filename.encode('utf-8'))
-        headers = {
-            "X-Batch-Id": batch_id,
-            "X-File-Idx": file_index,
-            "X-File-Name": quoted_filename,
-            "X-File-Size": file_size,
-            "X-File-Type": mime_type,
-            "Content-Type": "application/octet-stream",
-            "Content-Length": file_size,
-        }
-        headers.update(self._get_common_headers())
+        headers = [
+            "X-Batch-Id: " + str(batch_id),
+            "X-File-Idx: " + str(file_index),
+            "X-File-Name: " + str(quoted_filename),
+            "X-File-Size: " + str(file_size),
+            "X-File-Type: " + str(mime_type),
+            "Content-Type: application/octet-stream",
+            "Content-Length: " + str(file_size),
+        ]
+        headers.extend(self._get_common_headers())
 
         # Request data
         input_file = open(file_path, 'rb')
@@ -435,22 +356,30 @@ class BaseAutomationClient(object):
             fs_block_size = FILE_BUFFER_SIZE
         log.trace("Using file system block size"
                   " for the streaming upload buffer: %u bytes", fs_block_size)
-        data = self._read_data(input_file, fs_block_size)
 
         # Execute request
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r for file %s",
-            url, headers, cookies, file_path)
-        req = urllib2.Request(url, data, headers)
+#         cookies = self._get_cookies()
+#         log.trace("Calling %s with headers %r and cookies %r for file %s",
+#             url, headers, cookies, file_path)
+        log.trace("Calling %s with headers %r for file %s",
+            url, headers, file_path)
+
+        req = pycurl.Curl()
+        req.setopt(pycurl.URL, str(url))
+        req.setopt(pycurl.HTTPHEADER, headers)
+        req.setopt(pycurl.POST, 1)
+        if self.blob_timeout:
+            req.setopt(pycurl.TIMEOUT, self.blob_timeout)
+        self._set_streaming_option(req, input_file, fs_block_size)
         try:
-            resp = self.streaming_opener.open(req, timeout=self.blob_timeout)
+            headers, body = self._perform_request(req)
         except Exception as e:
             self._log_details(e)
             raise
         finally:
             input_file.close()
 
-        return self._read_response(resp, url)
+        return self._read_response(headers, body, url)
 
     def execute_batch(self, op_id, batch_id, file_idx, **params):
         """Execute a file upload Automation batch"""
@@ -481,27 +410,36 @@ class BaseAutomationClient(object):
         url += urlencode(parameters)
 
         headers = self._get_common_headers()
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r",
-                url, headers, cookies)
-        req = urllib2.Request(url, headers=headers)
+#         cookies = self._get_cookies()
+#         log.trace("Calling %s with headers %r and cookies %r",
+#                 url, headers, cookies)
+        log.trace("Calling %s with headers %r",
+                url, headers)
+
+        req = pycurl.Curl()
+        req.setopt(pycurl.URL, str(url))
+        req.setopt(pycurl.HTTPHEADER, headers)
+        req.setopt(pycurl.TIMEOUT, self.timeout)
         try:
-            token = self.opener.open(req, timeout=self.timeout).read()
-        except urllib2.HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                raise Unauthorized(self.server_url, self.user_id, e.code)
-            elif e.code == 404:
-                # Token based auth is not supported by this server
-                return None
-            else:
-                e.msg = base_error_message + ": HTTP error %d" % e.code
-                raise e
+            _, token = self._perform_request(req)
         except Exception as e:
             if hasattr(e, 'msg'):
                 e.msg = base_error_message + ": " + e.msg
             raise
-        cookies = self._get_cookies()
-        log.trace("Got token '%s' with cookies %r", token, cookies)
+
+        status_code = int(req.getinfo(pycurl.HTTP_CODE))
+        if status_code == 401 or status_code == 403:
+            raise Unauthorized(self.server_url, self.user_id, status_code)
+        elif status_code == 404:
+            # Token based auth is not supported by this server
+            return None
+        elif status_code >= 400:
+            msg = base_error_message + ": HTTP error %d" % status_code
+            raise ValueError(msg)
+
+#         cookies = self._get_cookies()
+#         log.trace("Got token '%s' with cookies %r", token, cookies)
+        log.trace("Got token '%s'", token)
         # Use the (potentially re-newed) token from now on
         if not revoke:
             self._update_auth(token=token)
@@ -543,18 +481,19 @@ class BaseAutomationClient(object):
         browser vs devices).
 
         """
-        return {
-            'X-User-Id': self.user_id,
-            'X-Device-Id': self.device_id,
-            'X-Client-Version': self.client_version,
-            'User-Agent': self.application_name + "/" + self.client_version,
-            'X-Application-Name': self.application_name,
-            self.auth[0]: self.auth[1],
-            'Cache-Control': 'no-cache',
-        }
+        return [
+            'X-User-Id: ' + str(self.user_id),
+            'X-Device-Id: ' + str(self.device_id),
+            'X-Client-Version: ' + str(self.client_version),
+            'User-Agent: ' + (
+                str(self.application_name) + "/" + str(self.client_version)),
+            'X-Application-Name: ' + str(self.application_name),
+            str(self.auth[0]) + ': ' + str(self.auth[1]),
+            'Cache-Control: no-cache',
+        ]
 
-    def _get_cookies(self):
-        return list(self.cookie_jar) if self.cookie_jar is not None else []
+#     def _get_cookies(self):
+#         return list(self.cookie_jar) if self.cookie_jar is not None else []
 
     def _check_params(self, command, params):
         if command not in self.operations:
@@ -581,19 +520,21 @@ class BaseAutomationClient(object):
 
         # TODO: add typechecking
 
-    def _read_response(self, response, url):
-        info = response.info()
-        s = response.read()
-        content_type = info.get('content-type', '')
-        cookies = self._get_cookies()
+    def _read_response(self, headers, body, url):
+        content_type = headers.get('Content-Type', '')
+#         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with cookies %r and JSON payload: %r",
-                url, cookies, s)
-            return json.loads(s) if s else None
+#             log.trace("Response for '%s' with cookies %r and JSON payload: %r",
+#                 url, cookies, s)
+            log.trace("Response for '%s' with JSON payload: %r",
+                url, body)
+            return json.loads(body) if body else None
         else:
-            log.trace("Response for '%s' with cookies %r and content-type: %r",
-                url, cookies, content_type)
-            return s
+#             log.trace("Response for '%s' with cookies %r and content-type: %r",
+#                 url, cookies, content_type)
+            log.trace("Response for '%s' with content-type: %r",
+                url, content_type)
+            return body
 
     def _log_details(self, e):
         if hasattr(e, "fp"):
@@ -612,12 +553,35 @@ class BaseAutomationClient(object):
 
         return str(time.time()) + '_' + str(random.randint(0, 1000000000))
 
-    def _read_data(self, file_object, buffer_size):
-        while True:
+    def _perform_request(self, req):
+
+        header_list = []
+        body = []
+
+        def write_headers(buf):
+            header_list.append(buf)
+
+        def write_data(chunk):
+            body.append(chunk)
+            return len(chunk)
+
+        req.setopt(pycurl.WRITEFUNCTION, write_data)
+        req.setopt(pycurl.HEADERFUNCTION, write_headers)
+        req.perform()
+        headers = {}
+        for header in header_list:
+            if ':' in header:
+                name, value = header.split(":", 1)
+                headers[name.strip()] = value.strip()
+        return headers, ''.join(body)
+
+    def _set_streaming_option(self, req, file_object, buffer_size):
+
+        # TODO: use buffer_size for READFUNCTION
+        def read_data(size):
             # Check if synchronization thread was suspended
             if self.check_suspended is not None:
                 self.check_suspended('File upload: %s' % file_object.name)
-            r = file_object.read(buffer_size)
-            if not r:
-                break
-            yield r
+            return file_object.read(size)
+
+        req.setopt(pycurl.READFUNCTION, read_data)

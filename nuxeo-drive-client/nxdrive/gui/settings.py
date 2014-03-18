@@ -5,9 +5,9 @@ from nxdrive.logging_config import get_logger
 from nxdrive.controller import ServerBindingSettings
 from nxdrive.controller import ProxySettings
 from nxdrive.controller import MissingToken
-from nxdrive.client.base_automation_client import get_proxies_for_handler
-from nxdrive.client.base_automation_client import get_proxy_handler
-import urllib2
+#from nxdrive.client.base_automation_client import get_proxies_for_handler
+# from nxdrive.client.base_automation_client import get_proxy_handler
+#import urllib2
 import socket
 
 WindowsError = None
@@ -397,29 +397,30 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
     def check_proxy_settings(proxy_settings, dialog):
         if proxy_settings.config == 'None':
             return True
-        try:
-            proxies, _ = get_proxies_for_handler(proxy_settings)
-            proxy_handler = get_proxy_handler(proxies)
-            if proxy_handler.proxies:
-                # System or manual proxy set, try a GET on test URL
-                opener = urllib2.build_opener(proxy_handler)
-                protocol = proxy_handler.proxies.iterkeys().next()
-                test_url = protocol + '://' + PROXY_TEST_HOST
-                opener.open(urllib2.Request(test_url))
-            return True
-        except socket.timeout:
-            return handle_error(timeout_msg, dialog, tab_index=1)
-        except urllib2.HTTPError as e:
-            msg = "HTTP error %d" % e.code
-            if hasattr(e, 'msg'):
-                msg = msg + ": " + e.msg
-            return handle_error(msg, dialog, tab_index=1)
-        except Exception as e:
-            if hasattr(e, 'msg'):
-                msg = e.msg
-            else:
-                msg = "Unable to connect to proxy server."
-            return handle_error(msg, dialog, tab_index=1)
+#         try:
+#             proxies, _ = get_proxies_for_handler(proxy_settings)
+#             proxy_handler = get_proxy_handler(proxies)
+#             if proxy_handler.proxies:
+#                 # System or manual proxy set, try a GET on test URL
+#                 opener = urllib2.build_opener(proxy_handler)
+#                 protocol = proxy_handler.proxies.iterkeys().next()
+#                 test_url = protocol + '://' + PROXY_TEST_HOST
+#                 opener.open(urllib2.Request(test_url))
+#             return True
+#         except socket.timeout:
+#             return handle_error(timeout_msg, dialog, tab_index=1)
+#         except urllib2.HTTPError as e:
+#             msg = "HTTP error %d" % e.code
+#             if hasattr(e, 'msg'):
+#                 msg = msg + ": " + e.msg
+#             return handle_error(msg, dialog, tab_index=1)
+#         except Exception as e:
+#             if hasattr(e, 'msg'):
+#                 msg = e.msg
+#             else:
+#                 msg = "Unable to connect to proxy server."
+#             return handle_error(msg, dialog, tab_index=1)
+        return True
 
     def get_proxy_settings(values):
         return ProxySettings(config=str(values['proxy_config']),

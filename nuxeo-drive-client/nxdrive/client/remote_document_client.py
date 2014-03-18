@@ -5,11 +5,11 @@ from collections import namedtuple
 from datetime import datetime
 import hashlib
 import os
-import urllib2
 from nxdrive.client.common import safe_filename
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
 from nxdrive.client.base_automation_client import BaseAutomationClient
+from nxdrive.client.base_automation_client import PycURLHTTPError
 
 
 log = get_logger(__name__)
@@ -184,7 +184,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             try:
                 return self.execute("Document.SetLifeCycle", op_input=op_input,
                                      value='delete')
-            except urllib2.HTTPError as e:
+            except PycURLHTTPError as e:
                 if e.code == 500:
                     return self.execute("Document.Delete", op_input=op_input)
                 raise
@@ -356,7 +356,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def fetch(self, ref):
         try:
             return self.execute("Document.Fetch", value=ref)
-        except urllib2.HTTPError as e:
+        except PycURLHTTPError as e:
             if e.code == 404:
                 raise NotFound("Failed to fetch document %r on server %r" % (
                     ref, self.server_url))

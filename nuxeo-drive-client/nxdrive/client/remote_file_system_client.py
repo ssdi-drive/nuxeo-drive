@@ -3,11 +3,11 @@
 import unicodedata
 from collections import namedtuple
 from datetime import datetime
-import urllib2
+import pycurl
 import os
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
-from nxdrive.client.common import FILE_BUFFER_SIZE
+# from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import BaseAutomationClient
 
@@ -207,33 +207,55 @@ class RemoteFileSystemClient(BaseAutomationClient):
         ) % (self.server_url, self.user_id)
         try:
             log.trace("Calling '%s' with headers: %r", url, headers)
-            req = urllib2.Request(url, headers=headers)
-            response = self.opener.open(req, timeout=self.blob_timeout)
-
-            if file_out is not None:
-                with open(file_out, "wb") as f:
-                    while True:
-                        # Check if synchronization thread was suspended
-                        if self.check_suspended is not None:
-                            self.check_suspended('File download: %s'
-                                                 % file_out)
-                        buffer_ = response.read(FILE_BUFFER_SIZE)
-                        if buffer_ == '':
-                            break
-                        f.write(buffer_)
-                return None, file_out
-            else:
-                return response.read(), None
-        except urllib2.HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                raise Unauthorized(self.server_url, self.user_id, e.code)
-            else:
-                e.msg = base_error_message + ": HTTP error %d" % e.code
-                raise e
+            req = pycurl.Curl()
+            req.setopt(pycurl.URL, str(url))
+            req.setopt(pycurl.HTTPHEADER, headers)
+            if self.blob_timeout:
+                req.setopt(pycurl.TIMEOUT, self.blob_timeout)
+            content, tmp_file = self._perform_get_request(req, file_out)
+            status_code = int(req.getinfo(pycurl.HTTP_CODE))
+            if status_code == 401 or status_code == 403:
+                raise Unauthorized(self.server_url, self.user_id, status_code)
+            elif status_code >= 400:
+                msg = base_error_message + ": HTTP error %d" % status_code
+                raise ValueError(msg)
+            return content, tmp_file
+#         except urllib2.HTTPError as e:
+#             if e.code == 401 or e.code == 403:
+#                 raise Unauthorized(self.server_url, self.user_id, e.code)
+#             else:
+#                 e.msg = base_error_message + ": HTTP error %d" % e.code
+#                 raise e
         except Exception as e:
             if hasattr(e, 'msg'):
                 e.msg = base_error_message + ": " + e.msg
             raise
+
+    def _perform_get_request(self, req, file_out):
+
+        if file_out is not None:
+            with open(file_out, "wb") as f:
+                # TODO: use FILE_BUFFER_SIZE for WRITEFUNCTION
+                def write_data(chunk):
+                    # Check if synchronization thread was suspended
+                    if self.check_suspended is not None:
+                        self.check_suspended('File download: %s' % f)
+                    f.write(chunk)
+                    return len(chunk)
+
+                req.setopt(pycurl.WRITEFUNCTION, write_data)
+                req.perform()
+            return None, file_out
+        else:
+            response = []
+
+            def write_data(chunk):
+                response.append(chunk)
+                return len(chunk)
+
+            req.setopt(pycurl.WRITEFUNCTION, write_data)
+            req.perform()
+            return ''.join(response), None
 
     #
     # API specific to the remote file system client

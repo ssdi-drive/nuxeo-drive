@@ -17,6 +17,7 @@ from nxdrive.client import DEDUPED_BASENAME_PATTERN
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
+from nxdrive.client.base_automation_client import PycURLHTTPError
 from nxdrive.model import ServerBinding
 from nxdrive.model import LastKnownState
 from nxdrive.logging_config import get_logger
@@ -30,8 +31,9 @@ except ImportError:
 
 POSSIBLE_NETWORK_ERROR_TYPES = (
     Unauthorized,
-    urllib2.URLError,
-    urllib2.HTTPError,
+#     urllib2.URLError,
+#     urllib2.HTTPError,
+    PycURLHTTPError,
     httplib.HTTPException,
     socket.error,
 )

@@ -1,6 +1,6 @@
 import os
 import time
-import urllib2
+#import urllib2
 import socket
 import httplib
 from datetime import datetime
@@ -9,6 +9,7 @@ from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.model import LastKnownState
 from nxdrive.controller import Controller
+from nxdrive.client.base_automation_client import PycURLHTTPError
 
 
 class TestIntegrationSynchronization(IntegrationTestCase):
@@ -533,7 +534,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Find various ways to similate network or server failure
         errors = [
-            urllib2.URLError('Test error'),
+#             urllib2.URLError('Test error'),
+            PycURLHTTPError('Test error'),
             socket.error('Test error'),
             httplib.HTTPException('Test error'),
         ]

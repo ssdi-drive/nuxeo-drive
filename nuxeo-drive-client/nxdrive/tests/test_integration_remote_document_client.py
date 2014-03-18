@@ -5,6 +5,7 @@ from nxdrive.client import NuxeoClient
 from nxdrive.client import Unauthorized
 from nxdrive.client import NotFound
 from nxdrive.client import LocalClient
+from nxdrive.client.base_automation_client import PycURLHTTPError
 from nxdrive.tests.common import IntegrationTestCase
 from nose import SkipTest
 
@@ -86,7 +87,7 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
 
         # A client can revoke a token explicitly and thus loose credentials
         remote_client4.revoke_token()
-        self.assertRaises(IOError, remote_client4.get_roots)
+        self.assertRaises(PycURLHTTPError, remote_client4.get_roots)
 
     def test_make_documents(self):
         remote_client = self.remote_document_client_1
