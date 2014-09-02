@@ -1,8 +1,11 @@
 import os
+import stat
 import sys
 import re
 import locale
 import mimetypes
+import shutil
+from shutil import rmtree as shutil_rmtree
 from Crypto.Cipher import AES
 from Crypto import Random
 from nxdrive.logging_config import get_logger
@@ -184,3 +187,22 @@ def deprecated(func):
     new_func.__doc__ = func.__doc__
     new_func.__dict__.update(func.__dict__)
     return new_func
+
+
+def _remove_readonly(func, path, _):
+    """Clear the readonly bit and reattempt the removal."""
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def rmtree_readonly(path, ignore_errors=False, onerror=None):
+    shutil_rmtree(path, onerror=_remove_readonly)
+
+
+def patch_shutil_rmtree():
+    """Patch shutil.rmtree to handle readonly files under Windows.
+
+    See http://bugs.python.org/issue19643 and
+    http://hg.python.org/cpython/rev/31d63ea5dffa
+    """
+    shutil.rmtree = rmtree_readonly

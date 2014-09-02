@@ -12,6 +12,7 @@ except ImportError:
     import pdb
     debugger = pdb
 
+from nxdrive.utils import patch_shutil_rmtree
 from nxdrive.controller import Controller
 from nxdrive.daemon import daemonize
 from nxdrive.controller import default_nuxeo_drive_folder
@@ -569,6 +570,9 @@ def main(argv=None):
     if sys.platform != 'win32':
         import signal
         signal.signal(signal.SIGUSR1, dumpstacks)
+    # Patch shutil.rmtree to handle readonly files under Windows
+    if sys.platform == 'win32':
+        patch_shutil_rmtree()
     if argv is None:
         argv = sys.argv
     return CliHandler().handle(argv)

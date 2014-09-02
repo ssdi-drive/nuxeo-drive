@@ -1,11 +1,13 @@
 """Common test utilities"""
 import os
+import sys
 import unittest
 import tempfile
 import hashlib
 import shutil
 import time
 
+from nxdrive.utils import patch_shutil_rmtree
 from nxdrive.utils import safe_long_path
 from nxdrive.model import LastKnownState
 from nxdrive.client import RemoteDocumentClient
@@ -24,6 +26,10 @@ def configure_logger():
 
 # Configure test logger
 configure_logger()
+
+# Patch shutil.rmtree to handle readonly files under Windows
+if sys.platform == 'win32':
+    patch_shutil_rmtree()
 
 
 class IntegrationTestCase(unittest.TestCase):
