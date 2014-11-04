@@ -1103,14 +1103,31 @@ class Synchronizer(object):
 
     def _synchronize_conflicted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        if doc_pair.local_digest == doc_pair.remote_digest:
+        is_locally_edited = doc_pair.local_parent_path.endswith(
+                                                    LOCALLY_EDITED_FOLDER_NAME)
+        if (doc_pair.local_digest == doc_pair.remote_digest
+            or is_locally_edited):
             # Note: this also handles folders
             if doc_pair.folderish:
                 log.debug('Automated conflict resolution using name for %s',
                           doc_pair.get_local_abspath())
             else:
-                log.debug('Automated conflict resolution using digest for %s',
-                          doc_pair.get_local_abspath())
+                if (is_locally_edited
+                    and doc_pair.local_digest != doc_pair.remote_digest):
+                    log.debug("Locally edited file %s is in conflict with"
+                              " remote content yet such conflicts are not"
+                              " handled for locally edited files, marking"
+                              " doc pair as 'locally_modified' making local"
+                              " file win (considering it as OK as remote"
+                              " document will be versioned at next Drive"
+                              " update)",
+                              doc_pair.get_local_abspath())
+                    doc_pair.update_state(local_state='modified',
+                                          remote_state='synchronized')
+                    return
+                else:
+                    log.debug('Automated conflict resolution using digest for'
+                              ' %s', doc_pair.get_local_abspath())
             doc_pair.update_state('synchronized', 'synchronized')
         else:
             new_local_name = remote_client.conflicted_name(
