@@ -1103,8 +1103,7 @@ class Synchronizer(object):
 
     def _synchronize_conflicted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        is_locally_edited = doc_pair.local_parent_path.endswith(
-                                                    LOCALLY_EDITED_FOLDER_NAME)
+        is_locally_edited = self.is_locally_edited(doc_pair)
         if (doc_pair.local_digest == doc_pair.remote_digest
             or is_locally_edited):
             # Note: this also handles folders
@@ -2244,6 +2243,9 @@ class Synchronizer(object):
 
     def is_locally_edited_folder(self, doc_pair):
         return doc_pair.local_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
+
+    def is_locally_edited(self, doc_pair):
+        return doc_pair.local_parent_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
 
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 
