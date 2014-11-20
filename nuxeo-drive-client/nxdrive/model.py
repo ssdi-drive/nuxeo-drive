@@ -536,7 +536,7 @@ class LastKnownState(Base):
         if last_sync_date is not None:
             self.last_sync_date = last_sync_date
         else:
-            self.last_sync_date = datetime.now()
+            self.last_sync_date = datetime.utcnow()
 
     def get_local_abspath(self):
         relative_path = self.local_path[1:].replace('/', os.path.sep)
@@ -550,7 +550,7 @@ class FileEvent(Base):
 
     id = Column(Integer, Sequence('fileevent_id_seq'), primary_key=True)
     local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
-    utc_time = Column(DateTime)
+    utc_time = Column(DateTime(timezone=True))
     path = Column(String)
 
     server_binding = relationship("ServerBinding")

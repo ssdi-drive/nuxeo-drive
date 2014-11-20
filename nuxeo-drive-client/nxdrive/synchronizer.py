@@ -483,7 +483,7 @@ class Synchronizer(object):
                              " states of an unsynchronized pair state")
 
         if doc_pair.local_path is not None:
-            # Delete descendants first
+           # Delete descendants first
             session.query(LastKnownState).filter(
                             and_(LastKnownState.pair_state == "unsynchronized",
                             LastKnownState.local_parent_path.like(
@@ -976,6 +976,7 @@ class Synchronizer(object):
                 remote_ref = remote_client.stream_file(
                     parent_ref, doc_pair.get_local_abspath(), filename=name)
             doc_pair.update_remote(remote_client.get_info(remote_ref))
+            local_client.set_remote_id(doc_pair.local_path, remote_ref)
             doc_pair.update_state('synchronized', 'synchronized')
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
@@ -1040,6 +1041,7 @@ class Synchronizer(object):
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
         doc_pair.update_local(local_client.get_info(path))
+        local_client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
         self.handle_readonly(local_client, doc_pair)
         doc_pair.update_state('synchronized', 'synchronized')
 

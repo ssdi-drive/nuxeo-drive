@@ -32,7 +32,7 @@ class FileInfo(object):
     """Data Transfer Object for file info on the Local FS"""
 
     def __init__(self, root, path, folderish, last_modification_time,
-                 digest_func='md5', check_suspended=None):
+                 digest_func='md5', check_suspended=None, remote_ref=None):
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
@@ -43,6 +43,7 @@ class FileInfo(object):
         self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
+        self.remote_ref = None
 
         # Last OS modification date of the file
         self.last_modification_time = last_modification_time
@@ -126,6 +127,32 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         self.unset_path_readonly(path)
 
+    def set_remote_id(self, ref, remote_id):
+        # Can be move to another class
+        path = self._abspath(ref)
+        if sys.platform == 'win32':
+            path = path + ":ndrive"
+            with open(path, "w") as f:
+                f.write(remote_id)
+            pass
+        else:
+            import xattr
+            xattr.setxattr(path, 'ndrive', remote_id)
+
+    def get_remote_id(self, ref):
+        # Can be move to another class
+        path = self._abspath(ref)
+        if sys.platform == 'win32':
+            path = path + ":ndrive"
+            with open(path, "w") as f:
+                return f.read()
+        else:
+            import xattr
+            try:
+                return xattr.getxattr(path, 'ndrive')
+            except:
+                return None
+
     # Getters
     def get_info(self, ref, raise_if_missing=True):
         os_path = self._abspath(ref)
@@ -137,7 +164,7 @@ class LocalClient(BaseClient):
                 return None
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
-        mtime = datetime.fromtimestamp(stat_info.st_mtime)
+        mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         path = u'/' + os_path[len(safe_long_path(self.base_folder)) + 1:]
         path = path.replace(os.path.sep, u'/')  # unix style path
         # On unix we could use the inode for file move detection but that won't
@@ -146,7 +173,8 @@ class LocalClient(BaseClient):
         # uid = str(stat_info.st_ino)
         return FileInfo(self.base_folder, path, folderish, mtime,
                         digest_func=self._digest_func,
-                        check_suspended=self.check_suspended)
+                        check_suspended=self.check_suspended,
+                        remote_ref=self.get_remote_id(ref))
 
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()

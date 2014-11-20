@@ -182,7 +182,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         """Convert Automation file system item description to RemoteFileInfo"""
         folderish = fs_item['folder']
         milliseconds = fs_item['lastModificationDate']
-        last_update = datetime.fromtimestamp(milliseconds // 1000)
+        last_update = datetime.utcfromtimestamp(milliseconds // 1000)
         last_contributor = fs_item.get('lastContributor')
 
         if folderish:
