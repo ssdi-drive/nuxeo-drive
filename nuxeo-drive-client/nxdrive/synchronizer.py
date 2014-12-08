@@ -99,51 +99,6 @@ def _local_children_names(doc_pair, session):
                 local_parent_path=doc_pair.local_path).all()])
 
 
-def rerank_local_rename_or_move_candidates(doc_pair, candidates, session,
-                                           check_suspended=None):
-    """Find the most suitable rename or move candidate
-
-    If doc_pair is a folder, then the similarity (Jaccard Index) of the
-    children names is the most important criterion to reorder the candidates.
-
-    Otherwise, candidates with same name (move) are favored over candidates
-    with same parent path (inplace rename) over candidates with no common
-    attribute (move + rename at once).
-
-    Folders without any children names overlap are pruned out of the candidate
-    list.
-
-    """
-    relatednesses = []
-    if doc_pair.folderish:
-        children_names = _local_children_names(doc_pair, session)
-
-    for c in candidates:
-
-        # Check if synchronization thread was suspended
-        if check_suspended is not None:
-            check_suspended("Re-rank local rename or move candidates")
-
-        if doc_pair.folderish:
-            # Measure the jackard index on direct children names of
-            # folders to finger print them
-            candidate_children_names = _local_children_names(c, session)
-            ji = jaccard_index(children_names, candidate_children_names)
-        else:
-            ji = 1.0
-
-        if ji == 0.0:
-            # prune folder that have no child in common
-            continue
-
-        same_name = doc_pair.local_name == c.local_name
-        same_parent = doc_pair.local_parent_path == c.local_parent_path
-        relatednesses.append(((ji, same_name, same_parent), c))
-
-    relatednesses.sort(reverse=True)
-    return [candidate for _, candidate in relatednesses]
-
-
 def find_first_name_match(name, possible_pairs, check_suspended=None):
     """Select the first pair that can match the provided name"""
 
@@ -399,6 +354,9 @@ class Synchronizer(object):
             local_folder=doc_pair.local_folder,
             local_parent_path=previous_local_path).all()
         for child in local_children:
+            log.debug("UPDATE PATH IN RENAME: %r", child)
+            if child.local_name is None:
+                continue
             child_path = updated_path + '/' + child.local_name
             self._local_rename_with_descendant_states(session, client, child,
                 child.local_path, child_path)
@@ -483,7 +441,7 @@ class Synchronizer(object):
                              " states of an unsynchronized pair state")
 
         if doc_pair.local_path is not None:
-           # Delete descendants first
+            # Delete descendants first
             session.query(LastKnownState).filter(
                             and_(LastKnownState.pair_state == "unsynchronized",
                             LastKnownState.local_parent_path.like(
@@ -582,8 +540,20 @@ class Synchronizer(object):
         for child_info in fs_children_info:
             child_name = os.path.basename(child_info.path)
             if not child_name in children:
-                child_pair = self._scan_local_new_file(session, child_name,
+                if child_info.remote_ref is None:
+                    child_pair = self._scan_local_new_file(session, child_name,
                                             child_info, doc_pair)
+                else:
+                    child_pair = session.query(LastKnownState).filter_by(
+                                    remote_ref=child_info.remote_ref).one()
+                    if child_pair.local_name in children:
+                        children.pop(child_pair.local_name)
+                    previous_local_path = child_pair.local_path
+                    child_pair.update_local(child_info)
+                    self._local_rename_with_descendant_states(session,
+                                client, child_pair,
+                                previous_local_path, child_pair.local_path)
+                    child_pair.update_state(local_state='moved')
             else:
                 child_pair = children.pop(child_name)
             self._scan_local_recursive(session, client, child_pair,
@@ -662,9 +632,10 @@ class Synchronizer(object):
             raise ValueError("Cannot bind %r to missing remote info" %
                              doc_pair)
 
+        log.debug("REMOTE DOC PAIR BEFORE: %r", doc_pair)
         # Update the pair state from the collected remote info
         doc_pair.update_remote(remote_info)
-
+        log.debug("REMOTE DOC PAIR AFTER: %r", doc_pair)
         if not remote_info.folderish:
             # No children to align, early stop.
             return
@@ -944,11 +915,39 @@ class Synchronizer(object):
 
     def _synchronize_locally_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        # Dont detect move if events is on
-        if (not doc_pair.local_folder in self.local_full_scan and
-            self._detect_resolve_local_move(doc_pair, session,
-            local_client, remote_client, local_info)):
-            return
+        # Detect move
+        if (local_info.remote_ref is not None):
+            move_pair = session.query(LastKnownState).filter_by(
+                remote_ref=local_info.remote_ref
+            ).first()
+            if move_pair is not None:
+                if not move_pair.remote_can_rename:
+                    doc_pair.remote_name = move_pair.remote_name
+                    self.handle_failed_remote_rename(move_pair, doc_pair, session)
+                    return
+                self._local_rename_with_descendant_states(session, local_client,
+                                        move_pair,
+                                        move_pair.local_path, doc_pair.local_path)
+                # Move ?
+                if (doc_pair.local_path != move_pair.local_path):
+                    parent_pair = session.query(LastKnownState).filter_by(
+                        local_folder=doc_pair.local_folder,
+                        local_path=doc_pair.local_parent_path
+                    ).first()
+                    remote_info = remote_client.move(local_info.remote_ref, parent_pair.remote_ref)
+                    move_pair.update_remote(remote_info)
+                # Rename
+                if (doc_pair.local_name != move_pair.local_name):
+                    remote_info = remote_client.rename(local_info.remote_ref, doc_pair.local_name)
+                    move_pair.update_remote(remote_info)
+                session.delete(doc_pair)
+                log.info("Move %s to %s", move_pair.local_path, doc_pair.local_path)
+                return
+            else:
+                # Known file
+                doc_pair.update_remote(remote_client.get_info(local_info.remote_ref))
+                doc_pair.update_state('synchronized', 'synchronized')
+                return
         name = os.path.basename(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to
         # create the document
@@ -993,11 +992,6 @@ class Synchronizer(object):
 
     def _synchronize_remotely_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        if (doc_pair.local_state == 'deleted' and
-            doc_pair.remote_state == 'modified' and
-            self._detect_resolve_local_move(doc_pair, session,
-            local_client, remote_client, local_info)):
-            return
         name = remote_info.name
         # Find the parent pair to find the path of the local folder to
         # create the document into
@@ -1057,10 +1051,6 @@ class Synchronizer(object):
 
     def _synchronize_locally_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        if (not doc_pair.local_folder in self.local_full_scan and
-            self._detect_resolve_local_move(doc_pair, session,
-            local_client, remote_client, local_info)):
-            return
         if doc_pair.remote_ref is not None:
             if remote_info.can_delete:
                 log.debug("Deleting or unregistering remote document"
@@ -1140,6 +1130,8 @@ class Synchronizer(object):
                 # The new local item will be detected as a creation and
                 # synchronized by the next iteration of the sync loop
                 local_client.rename(doc_pair.local_path, new_local_name)
+                # Remove the doc id to create on server ?
+                local_client.remove_remote_id(doc_pair.local_path)
 
                 # Let the remote win as if doing a regular creation
                 self._synchronize_remotely_created(doc_pair, session,
@@ -1171,6 +1163,8 @@ class Synchronizer(object):
     def _synchronize_locally_moved_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         doc_pair.remote_ref = None
+        # Should untrash from server if it is in trash
+        local_info.remote_ref = None
         self._synchronize_locally_created(doc_pair, session, local_client,
                                         remote_client, local_info, remote_info)
 
@@ -1184,6 +1178,7 @@ class Synchronizer(object):
                                                     target_pair.local_folder)
                 info = local_client.rename(target_pair.local_path,
                                             target_pair.remote_name)
+                previous_local_path = target_pair.local_path
                 source_pair.update_local(info)
                 if source_pair != target_pair:
                     if target_pair.folderish:
@@ -1201,6 +1196,11 @@ class Synchronizer(object):
                         session.delete(target_pair)
                     # Mark all local as unknown
                     #self._mark_unknown_local_recursive(session, source_pair)
+                else:
+                    self._local_rename_with_descendant_states(session,
+                                        local_client, source_pair,
+                                        previous_local_path,
+                                        source_pair.local_path)
                 source_pair.update_state('synchronized', 'synchronized')
                 return True
             except Exception, e:
@@ -1238,8 +1238,10 @@ class Synchronizer(object):
 
     def _synchronize_locally_moved(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        # A file has been moved locally, and an error occurs when tried to
-        # move on the server
+        if not doc_pair.remote_can_rename:
+            self.handle_failed_remote_rename(doc_pair, doc_pair,
+                                                     session)
+            return
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 log.debug('Renaming remote file according to local : %r',
@@ -1248,9 +1250,11 @@ class Synchronizer(object):
                                                         doc_pair.remote_ref,
                                                         doc_pair.local_name))
             except:
-                    self.handle_failed_remote_rename(doc_pair, doc_pair,
+                # A file has been moved locally, and an error occurs when tried to
+                # move on the server
+                self.handle_failed_remote_rename(doc_pair, doc_pair,
                                                      session)
-                    return
+                return
         parent_pair = session.query(LastKnownState).filter_by(
                 local_folder=local_client.base_folder,
                 local_path=doc_pair.local_parent_path).first()
@@ -1277,189 +1281,6 @@ class Synchronizer(object):
                   " synchronizer will fix this case at next iteration",
                   doc_pair)
         session.delete(doc_pair)
-
-    def _detect_local_move_or_rename(self, doc_pair, session,
-        local_client, local_info):
-        """Find local move or renaming events by introspecting the states
-
-        In case of detection return (source_doc_pair, target_doc_pair).
-        Otherwise, return (None, None)
-
-        """
-        filters = [
-            LastKnownState.local_folder == doc_pair.local_folder,
-            LastKnownState.folderish == doc_pair.folderish,
-        ]
-        if doc_pair.folderish:
-            # Detect either renaming or move but not both at the same time
-            # for folder to reduce the potential cost of re-ranking that
-            # needs to fetch the children of all potential candidates.
-            filters.append(or_(
-                LastKnownState.local_name == doc_pair.local_name,
-                LastKnownState.local_parent_path == doc_pair.local_parent_path
-            ))
-        else:
-            # File match is based on digest hence we can efficiently detect
-            # move and rename events or both at the same time.
-            filters.append(
-                LastKnownState.local_digest == doc_pair.local_digest)
-
-        if (doc_pair.pair_state == 'locally_deleted'
-            or doc_pair.pair_state == 'remotely_created'):
-            source_doc_pair = doc_pair
-            target_doc_pair = None
-            # The creation detection might not have occurred yet for the
-            # other pair state: let consider both pairs in states 'created'
-            # and 'unknown'.
-            filters.extend((
-                LastKnownState.remote_ref == None,
-                or_(LastKnownState.local_state == 'created',
-                    LastKnownState.local_state == 'unknown'),
-            ))
-        elif doc_pair.pair_state == 'locally_created':
-            source_doc_pair = None
-            target_doc_pair = doc_pair
-            filters.append(LastKnownState.local_state == 'deleted')
-        else:
-            # Nothing to do
-            return None, None
-
-        candidates = session.query(LastKnownState).filter(*filters).all()
-        if len(candidates) == 0:
-            # No match found
-            return None, None
-
-        if len(candidates) > 1 or doc_pair.folderish:
-            # Re-ranking is always required for folders as it also prunes false
-            # positives:
-            candidates = rerank_local_rename_or_move_candidates(
-                doc_pair, candidates, session,
-                check_suspended=self.check_suspended)
-            log.trace("Reranked candidates for %s: %s", doc_pair, candidates)
-
-            if len(candidates) == 0:
-                # Potentially matches have been pruned by the reranking
-                return None, None
-
-        if len(candidates) > 1:
-            log.debug("Found %d renaming / move candidates for %s",
-                      len(candidates), doc_pair)
-
-        best_candidate = candidates[0]
-        if doc_pair.pair_state == 'locally_created':
-            source_doc_pair = best_candidate
-        else:
-            target_doc_pair = best_candidate
-        return source_doc_pair, target_doc_pair
-
-    def _detect_resolve_local_move(self, doc_pair, session,
-        local_client, remote_client, local_info):
-        """Handle local move / renaming if doc_pair is detected as involved
-
-        Detection is based on digest for files and content for folders.
-        Resolution perform the matching remote action and update the local
-        state DB.
-
-        If the doc_pair is not detected as being involved in a rename
-        / move operation
-        """
-        # Detection step
-        source_doc_pair, target_doc_pair = self._detect_local_move_or_rename(
-            doc_pair, session, local_client, local_info)
-
-        if source_doc_pair is None or target_doc_pair is None:
-            # No candidate found
-            return False
-
-        # Resolution step
-        moved_or_renamed = False
-        remote_ref = source_doc_pair.remote_ref
-
-        remote_info = remote_client.get_info(remote_ref,
-                                             raise_if_missing=False)
-        # check that the target still exists
-        if remote_info is None:
-            # Nothing to do: the regular deleted / created handling will
-            # work in this case.
-            return False
-
-        if (target_doc_pair.local_parent_path
-            != source_doc_pair.local_parent_path):
-            # This is (at least?) a move operation
-
-            # Find the matching target parent folder, assuming it has already
-            # been refreshed and matched in the past
-            parent_doc_pair = session.query(LastKnownState).filter_by(
-                local_folder=doc_pair.local_folder,
-                local_path=target_doc_pair.local_parent_path,
-            ).first()
-
-            if (parent_doc_pair is not None  and
-                parent_doc_pair.remote_ref is not None):
-                # Detect any concurrent deletion of the target remote folder
-                # that would prevent the move
-                parent_doc_pair.refresh_remote(remote_client)
-            if (parent_doc_pair is not None and
-                parent_doc_pair.remote_ref is not None):
-                # Target has not be concurrently deleted, let's perform the
-                # move
-                moved_or_renamed = True
-                log.debug("Detected and resolving local move event "
-                          "on %s to %s",
-                    source_doc_pair, parent_doc_pair)
-                target_ref = parent_doc_pair.remote_ref
-                if not remote_client.can_move(remote_ref, target_ref):
-                    log.debug("Move operation unauthorized: fallback to"
-                              " default create / delete behavior if possible")
-                    return False
-                remote_info = remote_client.move(remote_ref, target_ref)
-                target_doc_pair.update_remote(remote_info)
-
-        if target_doc_pair.local_name != source_doc_pair.local_name:
-            # This is a (also?) a rename operation
-            moved_or_renamed = True
-            new_name = target_doc_pair.local_name
-            log.debug("Detected and resolving local rename event on %s to %s",
-                      source_doc_pair, new_name)
-            if remote_info.can_rename:
-                remote_info = remote_client.rename(remote_ref, new_name)
-                target_doc_pair.update_remote(remote_info)
-            else:
-                log.debug("Marking %s as synchronized since remote document"
-                          " can not be renamed: either it is readonly or it is"
-                          " a virtual folder that doesn't exist"
-                          " in the server hierarchy",
-                          target_doc_pair)
-                # Put the previous remote name to allow rename
-                target_doc_pair.remote_name = source_doc_pair.local_name
-                if self.handle_failed_remote_rename(source_doc_pair,
-                                                 target_doc_pair, session):
-                    return True
-
-        if moved_or_renamed:
-            #target_doc_pair.update_state('synchronized', 'synchronized')
-            # Set last synchronization date for new pair
-            #target_doc_pair.update_last_sync_date()
-            new_path = target_doc_pair.local_path
-            # Delete the new tree info that is now deprecated
-            filters = [
-                LastKnownState.local_folder == target_doc_pair.local_folder,
-                LastKnownState.local_path.like(
-                                            target_doc_pair.local_path + '/%'),
-                LastKnownState.remote_ref == None
-            ]
-            session.query(LastKnownState).filter(*filters).delete(
-                                                synchronize_session='fetch')
-            session.delete(target_doc_pair)
-            # Change the old tree with new path
-            self._local_rename_with_descendant_states(session, local_client,
-                                    source_doc_pair,
-                                    source_doc_pair.local_path, new_path)
-            source_doc_pair.update_remote(remote_info)
-            source_doc_pair.update_state('synchronized', 'synchronized')
-            session.commit()
-
-        return moved_or_renamed
 
     def synchronize(self, server_binding=None, limit=None):
         """Synchronize one file at a time from the pending list."""
@@ -1510,7 +1331,8 @@ class Synchronizer(object):
                 and nb_pending == pending_iterator + 1):
                 pending_iterator = 0
             pair_state = pending[pending_iterator]
-
+            if pair_state == 'synchronized':
+                continue
             try:
                 self.synchronize_one(pair_state, session=session)
                 synchronized += 1
@@ -1944,6 +1766,11 @@ class Synchronizer(object):
             # successfully refreshed (no network disruption while collecting
             # the change data): we can save the new time stamp to start again
             # from this point next time
+            pending = self._controller.list_pending(
+                local_folder=server_binding.local_folder,
+                limit=self.limit_pending,
+                session=session, ignore_in_error=self.error_skip_period)
+            log.debug("PENDING AFTER REMOTE: %r", pending)
             self._checkpoint(server_binding, checkpoint, session=session)
             self.current_action = Action("Local scan")
             try:
@@ -1962,6 +1789,11 @@ class Synchronizer(object):
             local_scan_is_done = True
             local_refresh_duration = time() - tick
             Action.finish_action()
+            pending = self._controller.list_pending(
+                local_folder=server_binding.local_folder,
+                limit=self.limit_pending,
+                session=session, ignore_in_error=self.error_skip_period)
+            log.debug("PENDING AFTER LOCAL: %r", pending)
             tick = time()
             # The DB is updated we, can update the UI with the number of
             # pending tasks
@@ -2216,12 +2048,14 @@ class Synchronizer(object):
 
     def handle_move(self, local_client, remote_client, doc_pair, src_path,
                         dest_path):
+        state = 'synchronized'
         log.info("Move from %s to %s", src_path, dest_path)
         previous_local_path = doc_pair.local_path
         # Just a rename
         if os.path.basename(dest_path) != os.path.basename(src_path):
             self.handle_rename(local_client, remote_client, doc_pair,
                                     dest_path)
+            state = 'moved'
         if os.path.dirname(src_path) != os.path.dirname(dest_path):
             # reparent
             new_parent = os.path.dirname(dest_path)
@@ -2231,7 +2065,6 @@ class Synchronizer(object):
             parent_pair = self.get_session().query(LastKnownState).filter_by(
                 local_folder=local_client.base_folder,
                 local_path=rel_path).first()
-            state = 'synchronized'
             if parent_pair is None:
                 log.warn("Cant find parent for %s, %s", rel_path, new_parent)
             else:
@@ -2246,6 +2079,7 @@ class Synchronizer(object):
         self._local_rename_with_descendant_states(self.get_session(),
                                 local_client, doc_pair,
                                 previous_local_path, doc_pair.local_path)
+        doc_pair.update_state(state, 'synchronized')
 
     def setup_local_watchdog(self, server_binding):
         from watchdog.observers import Observer
