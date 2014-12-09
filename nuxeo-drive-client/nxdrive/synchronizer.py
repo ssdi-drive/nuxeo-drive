@@ -354,7 +354,6 @@ class Synchronizer(object):
             local_folder=doc_pair.local_folder,
             local_parent_path=previous_local_path).all()
         for child in local_children:
-            log.debug("UPDATE PATH IN RENAME: %r", child)
             if child.local_name is None:
                 continue
             child_path = updated_path + '/' + child.local_name
@@ -479,7 +478,7 @@ class Synchronizer(object):
                               " digest info due to concurrent file"
                               " access", child_info.filepath)
 
-            # Previous attempt has failed: relax the digest constraint
+        # Previous attempt has failed: relax the digest constraint
         possible_pairs = session.query(LastKnownState).filter_by(
             local_folder=parent_pair.local_folder,
             local_path=None,
@@ -491,6 +490,7 @@ class Synchronizer(object):
         if child_pair is not None:
             log.debug("Matched local %s with remote %s by name only",
                                 child_info.path, child_pair.remote_name)
+            child_pair.update_local(child_info)
             child_pair.update_state(local_state='created')
             return child_pair
 
@@ -550,10 +550,11 @@ class Synchronizer(object):
                         children.pop(child_pair.local_name)
                     previous_local_path = child_pair.local_path
                     child_pair.update_local(child_info)
-                    self._local_rename_with_descendant_states(session,
+                    if previous_local_path is not None:
+                        self._local_rename_with_descendant_states(session,
                                 client, child_pair,
                                 previous_local_path, child_pair.local_path)
-                    child_pair.update_state(local_state='moved')
+                        child_pair.update_state(local_state='moved')
             else:
                 child_pair = children.pop(child_name)
             self._scan_local_recursive(session, client, child_pair,
@@ -632,10 +633,8 @@ class Synchronizer(object):
             raise ValueError("Cannot bind %r to missing remote info" %
                              doc_pair)
 
-        log.debug("REMOTE DOC PAIR BEFORE: %r", doc_pair)
         # Update the pair state from the collected remote info
         doc_pair.update_remote(remote_info)
-        log.debug("REMOTE DOC PAIR AFTER: %r", doc_pair)
         if not remote_info.folderish:
             # No children to align, early stop.
             return
@@ -1766,11 +1765,6 @@ class Synchronizer(object):
             # successfully refreshed (no network disruption while collecting
             # the change data): we can save the new time stamp to start again
             # from this point next time
-            pending = self._controller.list_pending(
-                local_folder=server_binding.local_folder,
-                limit=self.limit_pending,
-                session=session, ignore_in_error=self.error_skip_period)
-            log.debug("PENDING AFTER REMOTE: %r", pending)
             self._checkpoint(server_binding, checkpoint, session=session)
             self.current_action = Action("Local scan")
             try:
@@ -1789,11 +1783,6 @@ class Synchronizer(object):
             local_scan_is_done = True
             local_refresh_duration = time() - tick
             Action.finish_action()
-            pending = self._controller.list_pending(
-                local_folder=server_binding.local_folder,
-                limit=self.limit_pending,
-                session=session, ignore_in_error=self.error_skip_period)
-            log.debug("PENDING AFTER LOCAL: %r", pending)
             tick = time()
             # The DB is updated we, can update the UI with the number of
             # pending tasks

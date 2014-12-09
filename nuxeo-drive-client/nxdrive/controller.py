@@ -737,6 +737,8 @@ class Controller(object):
 
         # Invalidate client cache
         self.invalidate_client_cache(binding.server_url)
+        if binding.local_folder in self.synchronizer.local_full_scan:
+            self.synchronizer.local_full_scan.remove(binding.local_folder)
 
         # Delete binding info in local DB
         log.info("Unbinding '%s' from '%s' with account '%s'",

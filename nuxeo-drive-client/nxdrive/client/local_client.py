@@ -357,8 +357,9 @@ class LocalClient(BaseClient):
                 target_os_path = self._abspath(os.path.join(parent, new_name))
             else:
                 target_os_path, new_name = self._abspath_deduped(parent,
-                                                                new_name)
-            shutil.move(source_os_path, target_os_path)
+                                                                new_name, old_name)
+            if old_name != new_name:
+                shutil.move(source_os_path, target_os_path)
             if sys.platform == 'win32':
                 import ctypes
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
@@ -413,7 +414,7 @@ class LocalClient(BaseClient):
         os_path = self._abspath(os.path.join(parent, name + suffix))
         return os_path
 
-    def _abspath_deduped(self, parent, orig_name):
+    def _abspath_deduped(self, parent, orig_name, old_name=None):
         """Absolute path on the operating system with deduplicated names"""
         # make name safe by removing invalid chars
         name = safe_filename(orig_name)
@@ -423,6 +424,8 @@ class LocalClient(BaseClient):
 
         for _ in range(1000):
             os_path = self._abspath(os.path.join(parent, name + suffix))
+            if old_name == (name + suffix):
+                return os_path, name + suffix
             if not os.path.exists(os_path):
                 return os_path, name + suffix
 
