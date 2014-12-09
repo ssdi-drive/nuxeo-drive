@@ -156,8 +156,11 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         if sys.platform == 'win32':
             path = path + ":ndrive"
-            with open(path, "w") as f:
-                return f.read()
+            try:
+                with open(path, "r") as f:
+                    return f.read()
+            except:
+                return None
         else:
             import xattr
             try:
