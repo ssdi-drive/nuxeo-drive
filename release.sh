@@ -26,6 +26,6 @@ sed -i "s/'.*'/'$MAJOR_VERSION.$MINOR_VERSION-dev'/g" nuxeo-drive-client/nxdrive
 git commit -am"Post release $VERSION"
 
 # Push to GitHub
-git push origin master
+git push origin 1.4
 git push -f --tags origin release-$VERSION
 

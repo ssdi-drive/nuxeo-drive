@@ -74,7 +74,7 @@ can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
 ``nuxeo-drive-<version>-win32.msi``
-windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-msi/>`_.
+windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-1.4-msi/>`_.
 
 Once you installed the package (Administrator rights required) the new folder
 holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
@@ -95,8 +95,8 @@ Once the marketplace package is installed, the OSX desktop client package
 can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
-`Nuxeo Drive.dmg
-<https://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-dmg/lastSuccessfulBuild/artifact/dist/Nuxeo%20Drive.dmg>`_
+`OS X
+<https://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-1.4-dmg>`_
 from the Continous Integration.
 
 
@@ -107,7 +107,7 @@ The ``.deb`` package of the client is not yet available. In the mean time you
 can install it from source::
 
   sudo apt-get install python-pip python-dev python-qt4
-  sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
+  sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/1.4/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 
 Waiting for `NXP-13633 <https://jira.nuxeo.com/browse/NXP-13633>`_ to be resolved you need to run this command for Nuxeo Drive to work fine::
@@ -238,5 +238,5 @@ Developing on Nuxeo Drive
 =========================
 
 See the `contributor guide
-<https://github.com/nuxeo/nuxeo-drive/blob/master/DEVELOPERS.rst>`_
+<https://github.com/nuxeo/nuxeo-drive/blob/1.4/DEVELOPERS.rst>`_
 if you wish to actually contribute to the Nuxeo Drive code base.

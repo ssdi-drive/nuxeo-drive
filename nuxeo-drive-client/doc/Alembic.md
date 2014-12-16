@@ -8,8 +8,8 @@ with a relevant comment by running this command in nuxeo-drive/nuxeo-drive-clien
 
     alembic revision -m "Adding new_column to server_bindings"
 
-The file is created in [nuxeo-drive/nuxeo-drive-client/alembic/versions](https://github.com/nuxeo/nuxeo-drive/tree/master/nuxeo-drive-client/alembic/versions),
-as configured in [alembic.ini](https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/alembic.ini) by the `script_location` key.
+The file is created in [nuxeo-drive/nuxeo-drive-client/alembic/versions](https://github.com/nuxeo/nuxeo-drive/tree/1.4/nuxeo-drive-client/alembic/versions),
+as configured in [alembic.ini](https://github.com/nuxeo/nuxeo-drive/blob/1.4/nuxeo-drive-client/alembic.ini) by the `script_location` key.
 
 ## Alembic revision file implementation
 

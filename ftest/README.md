@@ -1,10 +1,10 @@
 # Nuxeo Drive functional tests
 
-Maven module to run the functional tests located in the [nxdrive.test](https://github.com/nuxeo/nuxeo-drive/tree/master/nuxeo-drive-client/nxdrive/tests) Python module.
+Maven module to run the functional tests located in the [nxdrive.test](https://github.com/nuxeo/nuxeo-drive/tree/1.4/nuxeo-drive-client/nxdrive/tests) Python module.
 
 Uses the [ant-assembly-maven-plugin](https://github.com/nuxeo/ant-assembly-maven-plugin/) and [nuxeo-ftest](https://github.com/nuxeo/tools-nuxeo-ftest) resources to:
 
-- Download the `nuxeo-drive` marketplace package from [Jenkins](http://qa.nuxeo.org/jenkins/view/Drive/) via the ``fetch-mp`` command of the [integration\_tests\_setup.py](https://github.com/nuxeo/nuxeo-drive/blob/master/tools/integration_tests_setup.py) script.
+- Download the `nuxeo-drive` marketplace package from [Jenkins](http://qa.nuxeo.org/jenkins/view/Drive/) via the ``fetch-mp`` command of the [integration\_tests\_setup.py](https://github.com/nuxeo/nuxeo-drive/blob/1.4/tools/integration_tests_setup.py) script.
 
 - Download a Nuxeo Tomcat CAP distribution.
 
@@ -12,7 +12,7 @@ Uses the [ant-assembly-maven-plugin](https://github.com/nuxeo/ant-assembly-maven
 
 - Start the Nuxeo server.
 
-- Run the tests via the ``test`` command of the [integration\_tests\_setup.py](https://github.com/nuxeo/nuxeo-drive/blob/master/tools/integration_tests_setup.py) script:
+- Run the tests via the ``test`` command of the [integration\_tests\_setup.py](https://github.com/nuxeo/nuxeo-drive/blob/1.4/tools/integration_tests_setup.py) script:
 
   - Sets the environment variables needed by the tests: Nuxeo server URL and test user credentials.
 

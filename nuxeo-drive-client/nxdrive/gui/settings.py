@@ -46,7 +46,7 @@ PROXY_TYPES = ['http', 'https']
 PROXY_TEST_HOST = 'www.google.com'
 
 LICENSE_LINK = (
-    '<a href ="http://github.com/nuxeo/nuxeo-drive/blob/master/LICENSE.txt">'
+    '<a href ="http://github.com/nuxeo/nuxeo-drive/blob/1.4/LICENSE.txt">'
     'LICENSE.txt</a>')
 SOURCE_LINK = ('<a href ="http://github.com/nuxeo/nuxeo-drive">'
                'http://github.com/nuxeo/nuxeo-drive</a>')

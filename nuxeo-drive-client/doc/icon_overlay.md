@@ -19,7 +19,7 @@
 
 Windows Explorer overlay using Python based on [Add my own icon overlays](http://timgolden.me.uk/python/win32_how_do_i/add-my-own-icon-overlays.html)
 
-See [pyoverlay.py](https://github.com/nuxeo/nuxeo-drive/tree/master/nuxeo-drive-client/nxdrive/overlay/win32/pyoverlay.py)
+See [pyoverlay.py](https://github.com/nuxeo/nuxeo-drive/tree/1.4/nuxeo-drive-client/nxdrive/overlay/win32/pyoverlay.py)
 
 ## Required packages
 
