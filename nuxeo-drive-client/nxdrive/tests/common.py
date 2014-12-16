@@ -172,7 +172,10 @@ class IntegrationTestCase(unittest.TestCase):
         self.controller_2.unbind_all()
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+        try:
+            self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+        except:
+            pass
 
         if os.path.exists(self.upload_tmp_dir):
             shutil.rmtree(safe_long_path(self.upload_tmp_dir))

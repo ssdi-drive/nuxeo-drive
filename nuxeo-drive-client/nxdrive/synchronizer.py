@@ -975,6 +975,7 @@ class Synchronizer(object):
                     parent_ref, doc_pair.get_local_abspath(), filename=name)
             doc_pair.update_remote(remote_client.get_info(remote_ref))
             local_client.set_remote_id(doc_pair.local_path, remote_ref)
+            doc_pair.update_local(local_client.get_info(doc_pair.local_path))
             doc_pair.update_state('synchronized', 'synchronized')
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
@@ -1035,6 +1036,7 @@ class Synchronizer(object):
             local_client.rename(local_client.get_path(tmp_file), name)
         doc_pair.update_local(local_client.get_info(path))
         local_client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+        doc_pair.update_local(local_client.get_info(path))
         self.handle_readonly(local_client, doc_pair)
         doc_pair.update_state('synchronized', 'synchronized')
 
@@ -1918,14 +1920,27 @@ class Synchronizer(object):
                     # the creation has been catched by scan
                     # As Windows send a delete / create event for reparent
                     local_info = local_client.get_info(rel_path)
+                    if local_info.remote_ref is not None:
+                        log.info('Detected a file movement %r based on xattr', local_info.remote_ref)
+                        try:
+                            remote = session.query(LastKnownState).filter(
+                                LastKnownState.remote_ref == local_info.remote_ref).one()
+                            log.info('File %r', remote)
+                            remote.update_local(local_client.get_info(
+                                                                    rel_path))
+                            remote.update_state('moved', remote.remote_state)
+                            log.info('File %r', remote)
+                            continue
+                        except:
+                            pass
                     digest = local_info.get_digest()
                     for deleted in deleted_files:
                         if deleted.local_digest == digest:
                             # Move detected
                             log.info('Detected a file movement %r', deleted)
-                            deleted.update_state('moved', deleted.remote_state)
                             deleted.update_local(local_client.get_info(
                                                                     rel_path))
+                            deleted.update_state('moved', deleted.remote_state)
                             continue
                     fragments = rel_path.rsplit('/', 1)
                     name = fragments[1]
@@ -2011,7 +2026,7 @@ class Synchronizer(object):
                             dst_pair.update_local(
                                         local_client.get_info(dst_rel_path))
                         continue
-                    log.trace('Unhandled case: %r %s %s', evt, rel_path,
+                    log.debug('Unhandled case: %r %s %s', evt, rel_path,
                              file_name)
                     self.unhandle_fs_event = True
             except Exception as e:

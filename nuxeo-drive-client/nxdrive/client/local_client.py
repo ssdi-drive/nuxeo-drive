@@ -143,10 +143,19 @@ class LocalClient(BaseClient):
         # Can be move to another class
         path = self._abspath(ref)
         if sys.platform == 'win32':
-            path = path + ":ndrive"
-            with open(path, "w") as f:
-                f.write(remote_id)
-            pass
+            locker = self.unlock_path(path, False)
+            pathAlt = path + ":ndrive"
+            try:
+                with open(pathAlt, "w") as f:
+                    f.write(remote_id)
+            except IOError as e:
+                if e.errno == os.errno.EACCES:
+                    self.unset_path_readonly(path)
+                    with open(pathAlt, "w") as f:
+                        f.write(remote_id)
+                    self.set_path_readonly(path)
+            finally:
+                self.lock_path(path, locker)
         else:
             import xattr
             xattr.setxattr(path, 'ndrive', remote_id)

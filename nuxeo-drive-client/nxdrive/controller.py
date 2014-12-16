@@ -247,7 +247,7 @@ class Controller(object):
         return Synchronizer(self, page_size=page_size)
 
     def use_watchdog(self):
-        return True
+        return False
 
     def trash_modified_file(self):
         return False
@@ -686,8 +686,10 @@ class Controller(object):
                                local_info=local_info,
                                remote_info=remote_info)
         locker = local_client.unlock_ref(u'/', False)
-        local_client.set_remote_id(u'/', remote_info.uid)
-        local_client.lock_ref(u'/', locker)
+        try:
+            local_client.set_remote_id(u'/', remote_info.uid)
+        finally:
+            local_client.lock_ref(u'/', locker)
         # The root should also be sync
         state.update_state('synchronized', 'synchronized')
         session.add(state)
