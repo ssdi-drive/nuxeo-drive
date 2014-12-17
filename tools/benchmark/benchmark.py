@@ -9,9 +9,27 @@ import os
 from docx import Document
 from PIL import Image
 
+words = dict()
+
+
+def load_dictionary(filename):
+    with open(filename, "r") as f:
+        for word in f.readlines():
+            word = word.strip()
+            l = len(word)
+            if not l in words:
+                words[l] = list()
+            words[l].append(word)
+    for key in words.keys():
+        print "%d words of length %d" % (len(words[key]), key)
+
 
 def id_generator(size=6, chars=string.ascii_letters + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+    if (not size in words):
+        # Generate random as no words exists
+        return ''.join(random.choice(chars) for _ in range(size))
+    else:
+        return random.choice(words[size])
 
 
 def generate_random_string(size=None):
@@ -19,8 +37,8 @@ def generate_random_string(size=None):
         size = random.randint(5, 30)
     res = ""
     while (size > 0):
-        if size > 9:
-            word_size = random.randint(1, 8)
+        if size > 20:
+            word_size = random.randint(4, 20)
             res = res + " " + id_generator(word_size)
             word_size = word_size + 1
         elif size > 2:
@@ -94,10 +112,10 @@ def generate_random_txt(filename, size):
 
 def generate_filename(path, extension=""):
     filename = os.path.join(path,
-                        id_generator(random.randint(4, 40)) + extension)
+                        id_generator(random.randint(4, 26)) + extension)
     while os.path.exists(os.path.join(path, filename)):
         filename = os.path.join(path,
-                        id_generator(random.randint(4, 40)) + extension)
+                        id_generator(random.randint(4, 26)) + extension)
     return filename
 
 
@@ -169,6 +187,8 @@ def generate_files(path, folder_number, files_number, size_min=10, size_max=3000
 
 
 if __name__ == '__main__':
+    import sys
+    load_dictionary("/usr/share/dict/web2a")
     path = 'benchmark_files'
     if not os.path.exists(path):
         os.mkdir(path)
