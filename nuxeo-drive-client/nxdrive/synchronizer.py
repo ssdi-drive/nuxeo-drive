@@ -12,6 +12,7 @@ import httplib
 
 from sqlalchemy import or_
 from sqlalchemy import and_
+from sqlalchemy.orm.exc import NoResultFound
 
 from nxdrive.client import DEDUPED_BASENAME_PATTERN
 from nxdrive.client import safe_filename
@@ -545,16 +546,23 @@ class Synchronizer(object):
                                             child_info, doc_pair)
                 else:
                     child_pair = session.query(LastKnownState).filter_by(
-                                    remote_ref=child_info.remote_ref).one()
-                    if child_pair.local_name in children:
-                        children.pop(child_pair.local_name)
-                    previous_local_path = child_pair.local_path
-                    child_pair.update_local(child_info)
-                    if previous_local_path is not None:
-                        self._local_rename_with_descendant_states(session,
-                                client, child_pair,
-                                previous_local_path, child_pair.local_path)
-                        child_pair.update_state(local_state='moved')
+                                    remote_ref=child_info.remote_ref).first()
+                    if child_pair is not None:
+                        if child_pair.local_name in children:
+                            children.pop(child_pair.local_name)
+                        previous_local_path = child_pair.local_path
+                        child_pair.update_local(child_info)
+                        if previous_local_path is not None:
+                            self._local_rename_with_descendant_states(session,
+                                    client, child_pair,
+                                    previous_local_path, child_pair.local_path)
+                            child_pair.update_state(local_state='moved')
+                    else:
+                        client.remove_remote_id(child_info.path)
+                        child_info = client.get_info(child_info.path)
+                        # File not found in db try new
+                        child_pair = self._scan_local_new_file(session, child_name,
+                                            child_info, doc_pair)
             else:
                 child_pair = children.pop(child_name)
             self._scan_local_recursive(session, client, child_pair,
@@ -1127,12 +1135,13 @@ class Synchronizer(object):
                 log.debug('Conflict being handled by renaming local "%s" to "%s"',
                           doc_pair.local_name, new_local_name)
 
+                # Remove the doc id to create on server ?
+                local_client.remove_remote_id(doc_pair.local_path)
                 # Let's rename the file
                 # The new local item will be detected as a creation and
                 # synchronized by the next iteration of the sync loop
                 local_client.rename(doc_pair.local_path, new_local_name)
-                # Remove the doc id to create on server ?
-                local_client.remove_remote_id(doc_pair.local_path)
+                
 
                 # Let the remote win as if doing a regular creation
                 self._synchronize_remotely_created(doc_pair, session,

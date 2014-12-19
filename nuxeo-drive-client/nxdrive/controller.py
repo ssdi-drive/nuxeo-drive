@@ -247,7 +247,7 @@ class Controller(object):
         return Synchronizer(self, page_size=page_size)
 
     def use_watchdog(self):
-        return False
+        return True
 
     def trash_modified_file(self):
         return False

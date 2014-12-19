@@ -132,9 +132,8 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         if sys.platform == 'win32':
             path = path + ":ndrive"
-            with open(path, "w") as f:
-                f.write("")
-            pass
+            if os.path.exists(path):
+                os.remove(path)
         else:
             import xattr
             xattr.removexattr(path, 'ndrive')
