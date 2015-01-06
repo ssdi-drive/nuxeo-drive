@@ -886,8 +886,7 @@ class Controller(object):
                 sb = sb_
                 local_path = file_path.split(sb_.local_folder, 1)[1]
         if sb is None:
-            log.error('Could not find server binding for file %s', file_path)
-            return
+            raise ValueError('Could not find server binding for file %s' % file_path)
 
         metadata_url = sb.server_url
         try:
