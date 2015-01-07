@@ -1,7 +1,7 @@
 """GUI prompt to manage application update"""
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
-from nxdrive.updater import version_compare
+from nxdrive.utils import version_compare
 from nxdrive.updater import UpdateError
 from nxdrive.updater import RootPrivilegeRequired
 
