@@ -43,6 +43,7 @@ from nxdrive.utils import decrypt
 from nxdrive.migration import migrate_db
 from nxdrive.activity import FileAction
 from nxdrive.utils import PidLockFile
+from nxdrive.contextual_menu import register_contextual_menu
 
 
 log = get_logger(__name__)
@@ -663,6 +664,11 @@ class Controller(object):
 
             # Set update info
             self._set_update_info(server_binding, remote_client=nxclient)
+
+            # Ensure that ndrive is registered as a contextual menu entry.
+            # Only under win32 for now, for OS X Finder implementation see
+            # https://jira.nuxeo.com/browse/NXDRIVE-119
+            register_contextual_menu(self)
 
         except:
             # In case an AddonNotInstalled exception is raised, need to

@@ -460,7 +460,7 @@ class CliHandler(object):
                 # Ensure that ndrive is registered as a contextual menu entry.
                 # Only under win32 for now, for OS X Finder implementation see
                 # https://jira.nuxeo.com/browse/NXDRIVE-119
-                register_contextual_menu()
+                register_contextual_menu(self.controller)
             except Exception, e:
                 self.log.warn(e)
 
