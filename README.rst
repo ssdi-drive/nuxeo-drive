@@ -108,7 +108,7 @@ can install it from source::
 
   sudo apt-get install python-pip python-dev python-qt4
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/1.4/requirements.txt
-  sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
+  sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git@1.4
 
 Waiting for `NXP-13633 <https://jira.nuxeo.com/browse/NXP-13633>`_ to be resolved you need to run this command for Nuxeo Drive to work fine::
 
