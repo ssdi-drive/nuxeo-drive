@@ -45,8 +45,6 @@ class TestDriveEdit(IntegrationTestCase):
                                                     self.locally_edited_path))
 
         # Update locally edited file
-        # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
-        self._sync(syn)
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Updated content.')
@@ -95,8 +93,6 @@ class TestDriveEdit(IntegrationTestCase):
                           'Some content.')
 
         # Update locally edited file
-        # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
-        self._sync(syn)
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Content updated from Locally Edited.')
@@ -210,8 +206,6 @@ class TestDriveEdit(IntegrationTestCase):
                                      % LOCALLY_EDITED_FOLDER_NAME))
 
         # Update locally edited file
-        # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
-        self._sync(syn)
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Updated content.')
@@ -256,8 +250,6 @@ class TestDriveEdit(IntegrationTestCase):
                                      % LOCALLY_EDITED_FOLDER_NAME))
 
         # Update locally edited file
-        # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
-        self._sync(syn)
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Content updated from Locally Edited.')
@@ -306,8 +298,6 @@ class TestDriveEdit(IntegrationTestCase):
                                      % LOCALLY_EDITED_FOLDER_NAME))
 
         # Update locally edited file
-        # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
-        self._sync(syn)
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Content updated from Locally Edited.')
