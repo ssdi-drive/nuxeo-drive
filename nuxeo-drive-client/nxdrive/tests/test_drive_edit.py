@@ -328,6 +328,67 @@ class TestDriveEdit(IntegrationTestCase):
         self.assertEquals(len(local.get_children_info('/%s'
                                     % LOCALLY_EDITED_FOLDER_NAME)), 1)
 
+    def test_drive_edit_as_not_last_contributor(self):
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        local = LocalClient(self.local_nxdrive_folder_1)
+        remote = self.remote_document_client_1
+        syn = ctl.synchronizer
+
+        # Create file in test workspace as user2
+        doc_id = self.remote_document_client_2.make_file('/', 'test.odt', 'Some content.')
+
+        # Drive edit file as user1
+        ctl.download_edit(self.nuxeo_url, 'default', doc_id, 'test.odt',
+                          open_file=False)
+
+        # Check file is downloaded to the Locally Edited folder
+        self.assertTrue(local.exists('/%s/test.odt'
+                                     % LOCALLY_EDITED_FOLDER_NAME))
+
+        # Update locally edited file
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
+                             'Updated content.')
+        self._sync(syn, wait_for_async=False)
+        self.assertEquals(len(local.get_children_info('/%s' % LOCALLY_EDITED_FOLDER_NAME)), 1)
+        self.assertTrue(local.exists('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME))
+        self.assertEquals(local.get_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME), 'Updated content.')
+        self.assertEquals(remote.get_content('/test.odt'), 'Updated content.')
+
+    def test_drive_edit_expected_conflict(self):
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        local = LocalClient(self.local_nxdrive_folder_1)
+        remote = self.remote_document_client_1
+        syn = ctl.synchronizer
+
+        # Create file in test workspace as user2
+        doc_id = self.remote_document_client_2.make_file('/', 'test.odt', 'Some content.')
+
+        # Drive edit file as user1
+        ctl.download_edit(self.nuxeo_url, 'default', doc_id, 'test.odt',
+                          open_file=False)
+
+        # Check file is downloaded to the Locally Edited folder
+        self.assertTrue(local.exists('/%s/test.odt'
+                                     % LOCALLY_EDITED_FOLDER_NAME))
+
+        # Update document as user2 to generate a conflict
+        self.remote_document_client_2.update_content('/test.odt', 'Remotely updated content.')
+
+        # Update locally edited file as user1
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
+                             'Locally updated content.')
+        self._sync(syn)
+        self.assertEquals(len(local.get_children_info('/%s' % LOCALLY_EDITED_FOLDER_NAME)), 1)
+        self.assertTrue(local.exists('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME))
+        self.assertEquals(local.get_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME), 'Locally updated content.')
+        self.assertEquals(remote.get_content('/test.odt'), 'Locally updated content.')
+
     def _sync(self, syn, wait_for_async=True):
         if wait_for_async:
             self.wait_audit_change_finder_if_needed()

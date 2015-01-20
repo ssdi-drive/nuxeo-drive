@@ -493,6 +493,7 @@ class Synchronizer(object):
 
     def _scan_local_new_file(self, session, child_name, child_info,
                              parent_pair):
+        remote_state = 'synchronized' if self.is_locally_edited_folder(parent_pair) else None
         if not child_info.folderish:
             # Try to find an existing remote doc that has not yet been
             # bound to any local file that would align with both name
@@ -521,7 +522,7 @@ class Synchronizer(object):
                               " digest info due to concurrent file"
                               " access", child_info.filepath)
 
-            # Previous attempt has failed: relax the digest constraint
+        # Previous attempt has failed: relax the digest constraint
         possible_pairs = session.query(LastKnownState).filter_by(
             local_folder=parent_pair.local_folder,
             local_path=None,
@@ -533,7 +534,9 @@ class Synchronizer(object):
         if child_pair is not None:
             log.debug("Matched local %s with remote %s by name only",
                                 child_info.path, child_pair.remote_name)
-            child_pair.update_state(local_state='created')
+            if remote_state is None and self.is_locally_edited_folder(child_pair):
+                remote_state = 'synchronized'
+            child_pair.update_state(local_state='created', remote_state=remote_state)
             return child_pair
 
         # Could not find any pair state to align to, create one
@@ -2283,7 +2286,8 @@ class Synchronizer(object):
         self.observers = []
 
     def is_locally_edited_folder(self, doc_pair):
-        return doc_pair.local_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
+        return (doc_pair.local_path and doc_pair.local_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
+                or doc_pair.remote_name == LOCALLY_EDITED_FOLDER_NAME)
 
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 

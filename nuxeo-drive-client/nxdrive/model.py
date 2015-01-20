@@ -59,6 +59,7 @@ PAIR_STATES = {
     ('synchronized', 'deleted'): 'remotely_deleted',
     ('deleted', 'deleted'): 'deleted',
     ('synchronized', 'unknown'): 'synchronized',
+    ('created', 'synchronized'): 'locally_modified',
 
     # conflicts with automatic resolution
     ('created', 'deleted'): 'locally_created',
@@ -492,18 +493,22 @@ class LastKnownState(Base):
         self.remote_parent_ref = remote_info.parent_uid
         self.remote_parent_path = remote_info.path[:-suffix_len]
         if (self.remote_can_create_child != remote_info.can_create_child
+#         if (self.remote_can_create_child is not None and self.remote_can_create_child != remote_info.can_create_child
                 and remote_state is None):
             remote_state = 'modified'
         self.remote_can_create_child = remote_info.can_create_child
         if (self.remote_can_rename != remote_info.can_rename
+#         if (self.remote_can_rename is not None and self.remote_can_rename != remote_info.can_rename
                 and remote_state is None):
             remote_state = 'modified'
         self.remote_can_rename = remote_info.can_rename
         if (self.remote_can_delete != remote_info.can_delete
+#         if (self.remote_can_delete is not None and self.remote_can_delete != remote_info.can_delete
                 and remote_state is None):
             remote_state = 'modified'
         self.remote_can_delete = remote_info.can_delete
         if (self.remote_can_update != remote_info.can_update
+#         if (self.remote_can_update is not None and self.remote_can_update != remote_info.can_update
                 and remote_state is None):
             remote_state = 'modified'
         self.remote_can_update = remote_info.can_update
