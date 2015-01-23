@@ -120,6 +120,10 @@ class CliHandler(object):
             help="Fire a debugger (ipdb or pdb) one uncaught error."
         )
         common_parser.add_argument(
+            "--debug-pydev", default=False, action="store_true",
+            help="Allow debugging with a PyDev server."
+        )
+        common_parser.add_argument(
             "--delay", default=self.default_delay, type=float,
             help="Delay in seconds between consecutive sync operations.")
         common_parser.add_argument(
@@ -515,6 +519,9 @@ class CliHandler(object):
         return 0
 
     def console(self, options):
+        if options.debug_pydev:
+            from pydev import pydevd
+            pydevd.settrace()
         self.controller.synchronizer.loop(
             delay=getattr(options, 'delay', DEFAULT_DELAY),
             max_sync_step=getattr(options, 'max_sync_step',
