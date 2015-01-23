@@ -188,11 +188,11 @@ class IntegrationTestCase(unittest.TestCase):
         self.remote_file_system_client_2 = remote_file_system_client_2
 
         ndrive_path = os.path.dirname(nxdrive.__file__)
-        ndrive_exec = os.path.join(ndrive_path, '../scripts/ndrive')
+        ndrive_exec = os.path.join(ndrive_path, '..', 'scripts', 'ndrive.py')
         cmdline = ndrive_exec
         if os.environ.get('PYDEV_DEBUG') == 'True':
             cmdline += ' --debug-pydev'
-        cmdline += " --nxdrive-home='%s'"
+        cmdline += ' --nxdrive-home="%s"'
         self.ndrive_1 = cmdline % self.nxdrive_conf_folder_1
         self.ndrive_2 = cmdline % self.nxdrive_conf_folder_2
 
@@ -294,16 +294,16 @@ class IntegrationTestCase(unittest.TestCase):
             time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
 
     def bind_server(self, ndrive_cmd, user, server_url, local_folder, password):
-        cmdline = "%s bind-server %s %s --local-folder='%s' --password=%s" % (
+        cmdline = '%s bind-server %s %s --local-folder="%s" --password=%s' % (
             ndrive_cmd, user, server_url, local_folder, password)
         execute(cmdline)
 
     def bind_root(self, ndrive_cmd, root, local_folder):
-        cmdline = "%s bind-root '%s' --local-folder='%s'" % (ndrive_cmd, root, local_folder)
+        cmdline = '%s bind-root "%s" --local-folder="%s"' % (ndrive_cmd, root, local_folder)
         execute(cmdline)
 
     def ndrive(self, ndrive_cmd, nb_expected, quit_timeout=None):
         quit_timeout = quit_timeout if quit_timeout is not None else self.TEST_DEFAULT_QUIT_TIMEOUT
-        cmdline = "%s console --log-level-console=%s --delay=%d --nb-to-sync=%d --quit-timeout=%d" % (
+        cmdline = '%s console --log-level-console=%s --delay=%d --nb-to-sync=%d --quit-timeout=%d' % (
             ndrive_cmd, DEFAULT_CONSOLE_LOG_LEVEL, self.TEST_DEFAULT_DELAY, nb_expected, quit_timeout)
         execute(cmdline)
