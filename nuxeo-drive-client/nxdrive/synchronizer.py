@@ -1563,7 +1563,7 @@ class Synchronizer(object):
         return False
 
     def loop(self, max_loops=None, delay=None, max_sync_step=None,
-             sync_thread=None, no_event_init=False):
+             sync_thread=None, no_event_init=False, nb_to_sync=None, quit_timeout=None):
         """Forever loop to scan / refresh states and perform sync"""
 
         # Reinit the full scan for unit test
@@ -1584,10 +1584,13 @@ class Synchronizer(object):
         # Initialize recently modified items
         self._controller.init_recently_modified()
 
-        update_check_time = time()
+        quit_check_time = time()
+        update_check_time = quit_check_time
         session = self.get_session()
         loop_count = 0
         try:
+            reached_nb_to_sync = False
+            total_synchronized = 0
             while True:
                 try:
                     n_synchronized = 0
@@ -1623,6 +1626,15 @@ class Synchronizer(object):
                         log.info("Stopping synchronization loop after %d"
                                  " loops", loop_count)
                         break
+                    if nb_to_sync >= 0:
+                        if total_synchronized > nb_to_sync:
+                            raise Exception("Number of items to synchronize exceeded [expected: %d,"
+                                            " actually synchronized: %d], stopping synchronizer." % (
+                                                nb_to_sync, total_synchronized))
+                        elif total_synchronized == nb_to_sync:
+                            log.info("Reached number of items to synchronize [%d], let's check if pending items"
+                                     " are remaining.", nb_to_sync)
+                            reached_nb_to_sync = True
 
                     bindings = session.query(ServerBinding).all()
                     if self._frontend is not None:
@@ -1633,6 +1645,16 @@ class Synchronizer(object):
                             n_synchronized += self.update_synchronize_server(
                                 sb, session=session,
                                 max_sync_step=max_sync_step)
+                            total_synchronized += n_synchronized
+
+                    if reached_nb_to_sync:
+                        if total_synchronized > nb_to_sync:
+                            raise Exception("Number of items to synchronize exceeded [expected: %d,"
+                                            " actually synchronized: %d], stopping synchronizer." % (
+                                                nb_to_sync, total_synchronized))
+                        log.info("No pending items remaining after having reached number of items to synchronize [%d],"
+                                 " stopping synchronizer.", nb_to_sync)
+                        break
 
                     loop_count += 1
 
@@ -1655,6 +1677,13 @@ class Synchronizer(object):
                     if self._frontend is not None:
                         self._frontend.notify_check_update()
                     update_check_time = time()
+                # Check for quit timeout
+                if quit_timeout >= 0 and time() - quit_check_time > quit_timeout:
+                    msg = "Maximum uptime [%ds] has expired" % quit_timeout
+                    if nb_to_sync >= 0:
+                        msg += " before number of items to synchronize [%d] was reached" % nb_to_sync
+                    msg += ", stopping synchronizer."
+                    raise Exception(msg)
         except SyncThreadStopped as e:
             self.get_session().rollback()
             log.info("Stopping synchronization loop (pid=%d)", pid)

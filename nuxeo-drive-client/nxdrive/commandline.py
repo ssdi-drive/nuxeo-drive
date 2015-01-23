@@ -30,6 +30,8 @@ from nxdrive import __version__
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_MAX_SYNC_STEP = 10
+DEFAULT_NB_TO_SYNC = -1
+DEFAULT_QUIT_TIMEOUT = -1
 DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20
 DEFAULT_UPDATE_CHECK_DELAY = 3600
@@ -124,6 +126,14 @@ class CliHandler(object):
             "--max-sync-step", default=self.default_max_sync_step, type=int,
             help="Number of consecutive sync operations to perform"
             " without refreshing the internal state DB.")
+        common_parser.add_argument(
+            "--nb-to-sync", default=DEFAULT_NB_TO_SYNC, type=int,
+            help="Maximum number of items to synchronize before quitting."
+        )
+        common_parser.add_argument(
+            "--quit-timeout", default=DEFAULT_QUIT_TIMEOUT, type=int,
+            help="Maximum uptime before quitting."
+        )
         common_parser.add_argument(
             "--handshake-timeout", default=self.default_handshake_timeout,
             type=int,
@@ -467,7 +477,7 @@ class CliHandler(object):
         try:
             return handler(options)
         except Exception, e:
-            if command == 'test' or options.debug:
+            if command == 'test' or options.debug or options.quit_timeout >= 0:
                 # Make it possible to use the postmortem debugger
                 raise
             else:
@@ -508,7 +518,9 @@ class CliHandler(object):
         self.controller.synchronizer.loop(
             delay=getattr(options, 'delay', DEFAULT_DELAY),
             max_sync_step=getattr(options, 'max_sync_step',
-                                  DEFAULT_MAX_SYNC_STEP))
+                                  DEFAULT_MAX_SYNC_STEP),
+            nb_to_sync=getattr(options, 'nb_to_sync', DEFAULT_NB_TO_SYNC),
+            quit_timeout=getattr(options, 'quit_timeout', DEFAULT_QUIT_TIMEOUT))
         return 0
 
     def stop(self, options=None):
