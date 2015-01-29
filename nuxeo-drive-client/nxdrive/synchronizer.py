@@ -969,13 +969,13 @@ class Synchronizer(object):
             if doc_pair.folderish:
                 log.debug("Creating remote folder '%s' in folder '%s'",
                           name, parent_pair.remote_name)
-                remote_ref = remote_client.make_folder(parent_ref, name)
+                fs_item_info = remote_client.make_folder(parent_ref, name)
             else:
                 log.debug("Creating remote document '%s' in folder '%s'",
                           name, parent_pair.remote_name)
-                remote_ref = remote_client.stream_file(
+                fs_item_info = remote_client.stream_file(
                     parent_ref, doc_pair.get_local_abspath(), filename=name)
-            doc_pair.update_remote(remote_client.get_info(remote_ref))
+            doc_pair.update_remote(remote_client.get_info(fs_item_info.uid))
             doc_pair.update_state('synchronized', 'synchronized')
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
