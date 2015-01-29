@@ -830,13 +830,13 @@ class Synchronizer(object):
             if doc_pair.remote_can_update:
                 log.debug("Updating remote document '%s'.",
                           doc_pair.remote_name)
-                remote_client.stream_update(
+                fs_item_info = remote_client.stream_update(
                     doc_pair.remote_ref,
                     doc_pair.get_local_abspath(),
                     parent_fs_item_id=doc_pair.remote_parent_ref,
                     filename=doc_pair.remote_name,
                 )
-                doc_pair.refresh_remote(remote_client)
+                doc_pair.update_remote(fs_item_info)
             else:
                 log.debug("Skip update of remote document '%s'"\
                              " as it is readonly.",
@@ -975,7 +975,7 @@ class Synchronizer(object):
                           name, parent_pair.remote_name)
                 fs_item_info = remote_client.stream_file(
                     parent_ref, doc_pair.get_local_abspath(), filename=name)
-            doc_pair.update_remote(remote_client.get_info(fs_item_info.uid))
+            doc_pair.update_remote(fs_item_info)
             doc_pair.update_state('synchronized', 'synchronized')
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
