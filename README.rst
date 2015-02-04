@@ -74,7 +74,7 @@ can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
 ``nuxeo-drive-<version>-win32.msi``
-windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-1.4-msi/>`_.
+windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/nuxeo-drive-msi/>`_.
 
 Once you installed the package (Administrator rights required) the new folder
 holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
@@ -96,7 +96,7 @@ can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
 `OS X
-<https://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-1.4-dmg>`_
+<https://qa.nuxeo.org/jenkins/job/nuxeo-drive-dmg>`_
 from the Continous Integration.
 
 
