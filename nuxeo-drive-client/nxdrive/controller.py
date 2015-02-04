@@ -22,6 +22,7 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
@@ -757,7 +758,7 @@ class Controller(object):
         for sb in session.query(ServerBinding).all():
             self.unbind_server(sb.local_folder)
 
-    def bind_root(self, local_folder, remote_ref, repository='default',
+    def bind_root(self, local_folder, remote_ref, repository=DEFAULT_REPOSITORY_NAME,
                   session=None):
         """Bind local root to a remote root (folderish document in Nuxeo).
 
@@ -778,7 +779,7 @@ class Controller(object):
         # Register the root on the server
         nxclient.register_as_root(remote_ref)
 
-    def unbind_root(self, local_folder, remote_ref, repository='default',
+    def unbind_root(self, local_folder, remote_ref, repository=DEFAULT_REPOSITORY_NAME,
                     session=None):
         """Remove binding to remote folder"""
         session = self.get_session() if session is None else session
@@ -996,7 +997,7 @@ class Controller(object):
         remote_client.make_local_raise(self._local_error)
         return remote_client
 
-    def get_remote_doc_client(self, server_binding, repository='default',
+    def get_remote_doc_client(self, server_binding, repository=DEFAULT_REPOSITORY_NAME,
                               base_folder=None):
         """Return an instance of Nuxeo Document Client"""
         sb = server_binding
