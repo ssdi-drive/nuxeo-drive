@@ -3,7 +3,7 @@ Created on 8 mai 2014
 
 @author: Remi Cattiau
 """
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from nxdrive.gui.folders_treeview import FolderTreeview, FilteredFsClient
 from nxdrive.wui.translator import Translator
 

@@ -1,4 +1,4 @@
-from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from PySide.QtCore import QObject, Signal, Slot, QTimer
 from Queue import Queue, Empty
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.processor import Processor
@@ -30,10 +30,10 @@ class QueueItem(object):
 
 class QueueManager(QObject):
     # Always create thread from the main thread
-    newItem = pyqtSignal(object)
-    newError = pyqtSignal(object)
-    queueEmpty = pyqtSignal()
-    queueProcessing = pyqtSignal()
+    newItem = Signal(object)
+    newError = Signal(object)
+    queueEmpty = Signal()
+    queueProcessing = Signal()
     '''
     classdocs
     '''
@@ -181,7 +181,7 @@ class QueueManager(QObject):
             # deleted and conflicted
             log.debug("Not processable state: %r", state)
 
-    @pyqtSlot()
+    @Slot()
     def _on_error_timer(self):
         cur_time = int(time.time())
         self._error_lock.acquire()
@@ -197,7 +197,7 @@ class QueueManager(QObject):
         finally:
             self._error_lock.release()
 
-    @pyqtSlot()
+    @Slot()
     def _on_new_error(self):
         self._error_timer.start(1000)
 
@@ -279,7 +279,7 @@ class QueueManager(QObject):
         self._get_file_lock.release()
         return state
 
-    @pyqtSlot()
+    @Slot()
     def _thread_finished(self):
         for thread in self._processors_pool:
             if thread.isFinished():
@@ -338,7 +338,7 @@ class QueueManager(QObject):
         return (self._local_folder_queue.qsize() + self._local_file_queue.qsize()
                 + self._remote_folder_queue.qsize() + self._remote_file_queue.qsize())
 
-    @pyqtSlot()
+    @Slot()
     def launch_processors(self):
         if (self._local_folder_queue.empty() and self._local_file_queue.empty()
                 and self._remote_file_queue.empty() and self._local_file_queue.qsize()):

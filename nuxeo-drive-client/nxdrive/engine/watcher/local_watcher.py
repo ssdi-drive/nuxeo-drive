@@ -11,7 +11,7 @@ import sys
 import os
 from time import sleep
 from threading import Lock
-from PyQt4.QtCore import pyqtSignal, pyqtSlot
+from PySide.QtCore import Signal, Slot
 log = get_logger(__name__)
 
 # Windows 2s between resolution of delete event
@@ -19,7 +19,7 @@ WIN_MOVE_RESOLUTION_PERIOD = 2000
 
 
 class LocalWatcher(EngineWorker):
-    localScanFinished = pyqtSignal()
+    localScanFinished = Signal()
     '''
     classdocs
     '''
@@ -116,7 +116,7 @@ class LocalWatcher(EngineWorker):
             metrics['fs_events'] = self._event_handler.counter
         return dict(metrics.items() + self._metrics.items())
 
-    @pyqtSlot(str)
+    @Slot(str)
     def scan_pair(self, local_path):
         info = self.client.get_info(local_path)
         self._scan_recursive(info, recursive=False)

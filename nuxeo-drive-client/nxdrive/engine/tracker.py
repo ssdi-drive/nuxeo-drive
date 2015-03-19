@@ -2,7 +2,7 @@
 @author: Remi Cattiau
 '''
 from nxdrive.engine.workers import Worker
-from PyQt4 import QtCore
+from PySide import QtCore
 from nxdrive.logging_config import get_logger
 import platform
 log = get_logger(__name__)
@@ -36,7 +36,7 @@ class Tracker(Worker):
             self.connect_engine(engine)
         self._manager.newEngine.connect(self.connect_engine)
 
-    @QtCore.pyqtSlot(object)
+    @QtCore.Slot(object)
     def connect_engine(self, engine):
         engine.newSync.connect(self._send_sync_event)
 
@@ -54,7 +54,7 @@ class Tracker(Worker):
         user_agent = user_agent + ")"
         return user_agent
 
-    @QtCore.pyqtSlot(object, object)
+    @QtCore.Slot(object, object)
     def _send_sync_event(self, pair, metrics):
         speed = None
         timing = None
@@ -69,7 +69,7 @@ class Tracker(Worker):
             log.trace("Send TransferOperation(%s) Speed: %d", metrics["handler"], speed)
             self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="Speed", value=speed)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _send_stats(self):
         engines = self._manager.get_engines()
         for _, engine in engines.iteritems():

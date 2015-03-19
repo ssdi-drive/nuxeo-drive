@@ -27,13 +27,13 @@ TIME_FORMAT_PATTERN = '%d %b %H:%M'
 # Keep Qt an optional dependency for now
 QtGui, QApplication, QObject = None, object, object
 try:
-    from PyQt4 import QtGui
-    from PyQt4 import QtCore
+    from PySide import QtGui
+    from PySide import QtCore
     QApplication = QtGui.QApplication
     QObject = QtCore.QObject
-    log.debug("Qt / PyQt4 successfully imported")
+    log.debug("Qt / PySide successfully imported")
 except ImportError:
-    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
+    log.warning("Qt / PySide is not installed: GUI is disabled")
     pass
 
 
@@ -45,12 +45,12 @@ class Communicator(QObject):
 
     """
     # (event name, new icon, rebuild menu)
-    icon = QtCore.pyqtSignal(str)
-    menu = QtCore.pyqtSignal()
-    stop = QtCore.pyqtSignal()
-    change = QtCore.pyqtSignal(object, str)
-    invalid_credentials = QtCore.pyqtSignal(str)
-    update_check = QtCore.pyqtSignal()
+    icon = QtCore.Signal(str)
+    menu = QtCore.Signal()
+    stop = QtCore.Signal()
+    change = QtCore.Signal(object, str)
+    invalid_credentials = QtCore.Signal(str)
+    update_check = QtCore.Signal()
 
 
 class BindingInfo(object):
@@ -444,7 +444,7 @@ class Application(QApplication):
             # Quit directly
             self.handle_stop()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def handle_stop(self):
         if self.quit_app_after_sync_stopped:
             log.info('Quitting Nuxeo Drive')
@@ -650,7 +650,7 @@ class Application(QApplication):
     def update_menu(self):
         self.tray_icon_menu.update_menu(self.manager.list_server_bindings())
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def handle_invalid_credentials(self, local_folder):
         # TODO Recode
         """

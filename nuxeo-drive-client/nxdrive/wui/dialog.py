@@ -5,7 +5,7 @@ Created on 28 janv. 2015
 
 TODO: Find a better way for the try/catch on slot
 '''
-from PyQt4 import QtGui, QtCore, QtWebKit
+from PySide import QtGui, QtCore, QtWebKit
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import FileAction
 from nxdrive.client.base_automation_client import Unauthorized
@@ -131,7 +131,7 @@ class WebDriveApi(QtCore.QObject):
             return None
         return engines[uid]
 
-    @QtCore.pyqtSlot(str, str, str, result=str)
+    @QtCore.Slot(str, str, str, result=str)
     def get_last_files(self, uid, number, direction):
         try:
             uid = str(uid)
@@ -151,7 +151,7 @@ class WebDriveApi(QtCore.QObject):
         engine.update_password(password)
         return ""
 
-    @QtCore.pyqtSlot(str, str, result=str)
+    @QtCore.Slot(str, str, result=str)
     def update_password(self, uid, password):
         password = str(password)
         try:
@@ -174,14 +174,14 @@ class WebDriveApi(QtCore.QObject):
             # Map error here
             return "CONNECTION_UNKNOWN"
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def close(self):
         try:
             return self._dialog.close()
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_tracker_id(self):
         try:
             return self._manager.get_tracker_id()
@@ -189,7 +189,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(result=int)
+    @QtCore.Slot(result=int)
     def get_log_level(self):
         try:
             return self._manager.get_log_level()
@@ -197,28 +197,28 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return 10
 
-    @QtCore.pyqtSlot(int)
+    @QtCore.Slot(int)
     def set_log_level(self, log_level):
         try:
             return self._manager.set_log_level(log_level)
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_appname(self):
         try:
             return self._manager.get_appname()
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def set_language(self, locale):
         try:
             Translator.set(str(locale))
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def discard_notification(self, id):
         try:
             self._manager.get_notification_service().discard_notification(id)
@@ -240,7 +240,7 @@ class WebDriveApi(QtCore.QObject):
             result.append(self._export_notification(notif))
         return result
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def get_notifications(self, engine_uid):
         try:
             return self._json(self._export_notifications(
@@ -249,7 +249,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_languages(self):
         try:
             return self._json(Translator.languages())
@@ -257,7 +257,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def locale(self):
         try:
             return Translator.locale()
@@ -265,7 +265,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_update_status(self):
         try:
             status = self._manager.get_updater().get_status()
@@ -274,14 +274,14 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def app_update(self, version):
         try:
             self._manager.get_updater().update(version)
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def get_actions(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -297,7 +297,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def get_threads(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -310,7 +310,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def get_errors(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -325,7 +325,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, str)
+    @QtCore.Slot(str, str)
     def show_metadata(self, uid, ref):
         try:
             engine = self._get_engine(str(uid))
@@ -335,7 +335,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def get_conflicts(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -350,7 +350,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_infos(self):
         try:
             return self._json(self._manager.get_metrics())
@@ -358,7 +358,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def is_syncing(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -371,7 +371,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(bool, result=str)
+    @QtCore.Slot(bool, result=str)
     def set_auto_start(self, value):
         try:
             self._manager.set_auto_start(value)
@@ -379,7 +379,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
         return ""
 
-    @QtCore.pyqtSlot(result=bool)
+    @QtCore.Slot(result=bool)
     def get_auto_start(self):
         try:
             return self._manager.get_auto_start()
@@ -387,7 +387,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return False
 
-    @QtCore.pyqtSlot(bool, result=str)
+    @QtCore.Slot(bool, result=str)
     def set_auto_update(self, value):
         try:
             self._manager.set_auto_update(value)
@@ -395,7 +395,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
         return ""
 
-    @QtCore.pyqtSlot(result=bool)
+    @QtCore.Slot(result=bool)
     def get_auto_update(self):
         try:
             return self._manager.get_auto_update()
@@ -403,7 +403,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return False
 
-    @QtCore.pyqtSlot(result=bool)
+    @QtCore.Slot(result=bool)
     def is_beta_channel_available(self):
         try:
             return self._manager.is_beta_channel_available()
@@ -411,7 +411,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return False
 
-    @QtCore.pyqtSlot(bool, result=str)
+    @QtCore.Slot(bool, result=str)
     def set_beta_channel(self, value):
         try:
             self._manager.set_beta_channel(value)
@@ -419,7 +419,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
         return ""
 
-    @QtCore.pyqtSlot(result=bool)
+    @QtCore.Slot(result=bool)
     def get_beta_channel(self):
         try:
             return self._manager.get_beta_channel()
@@ -427,7 +427,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return False
 
-    @QtCore.pyqtSlot(bool, result=str)
+    @QtCore.Slot(bool, result=str)
     def set_tracking(self, value):
         try:
             self._manager.set_tracking(value)
@@ -435,7 +435,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
         return ""
 
-    @QtCore.pyqtSlot(result=bool)
+    @QtCore.Slot(result=bool)
     def get_tracking(self):
         try:
             return self._manager.get_tracking()
@@ -443,7 +443,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return False
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def open_remote(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -454,7 +454,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, str, result=str)
+    @QtCore.Slot(str, str, result=str)
     def open_local(self, uid, path):
         try:
             # Make sure it is string ( come from WebKit as QString
@@ -472,14 +472,14 @@ class WebDriveApi(QtCore.QObject):
         # TODO Handle the exception here
         return ""
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def show_activities(self):
         try:
             self._application.show_activities()
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def show_conflicts_resolution(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -487,7 +487,7 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def show_settings(self, page=None):
         try:
             log.debug("show settings on page %s", page)
@@ -495,14 +495,14 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def quit(self):
         try:
             self._application.quit()
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_engines(self):
         try:
             result = []
@@ -515,7 +515,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def browse_folder(self, base_folder):
         try:
             local_folder_path = base_folder
@@ -534,14 +534,14 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def show_file_status(self):
         try:
             self._application.show_file_status()
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_version(self):
         try:
             return self._manager.get_version()
@@ -549,7 +549,7 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, str)
+    @QtCore.Slot(str, str)
     def resize(self, width, height):
         try:
             if self._dialog is not None:
@@ -557,7 +557,7 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def debug(self, msg):
         try:
             log.debug(msg)
@@ -590,7 +590,7 @@ class WebDialog(QtGui.QDialog):
             filename = page
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith("http"):
-            from PyQt4 import QtNetwork
+            from PySide import QtNetwork
             url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
             if token is not None:
                 url.setRawHeader("X-Authentication-Token",
@@ -616,13 +616,13 @@ class WebDialog(QtGui.QDialog):
         self.updateGeometry()
         self.activateWindow()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def show(self):
         super(WebDialog, self).show()
         self.raise_()
         self.activateWindow()
         self.setFocus(QtCore.Qt.ActiveWindowFocusReason)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _attachJsApi(self):
         self._frame.addToJavaScriptWindowObject("drive", self._api)

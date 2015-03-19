@@ -14,7 +14,7 @@ from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 from nxdrive.tests.common import TEST_DEFAULT_DELAY
-from PyQt4 import QtCore
+from PySide import QtCore
 from threading import Thread
 from time import sleep
 

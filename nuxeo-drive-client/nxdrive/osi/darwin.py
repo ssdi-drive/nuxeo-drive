@@ -40,7 +40,7 @@ class RightClickService(NSObject):
                         value = value[7:]
                     value = urllib2.unquote(value)
                     log.debug("Should open : %s", value)
-                    from PyQt4.QtCore import QCoreApplication
+                    from PySide.QtCore import QCoreApplication
                     QCoreApplication.instance().show_metadata(value)
             return None
         except Exception as e:

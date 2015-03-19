@@ -1,7 +1,7 @@
 '''
 @author: Remi Cattiau
 '''
-from PyQt4 import QtCore
+from PySide import QtCore
 from nxdrive.wui.dialog import WebDialog
 from nxdrive.wui.dialog import WebDriveApi
 from nxdrive.logging_config import get_logger
@@ -112,7 +112,7 @@ class DebugDriveApi(WebDriveApi):
             result["metrics"]["action"] = self._export_action(result["metrics"]["action"])
         return result
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_logs(self):
         try:
             return str(self.logHandler.get_buffer())
@@ -120,7 +120,7 @@ class DebugDriveApi(WebDriveApi):
             log.exception(e)
             return None
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def get_engine(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -130,7 +130,7 @@ class DebugDriveApi(WebDriveApi):
             log.exception(e)
             return None
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def resume_remote_watcher(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -138,7 +138,7 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def resume_local_watcher(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -146,7 +146,7 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def suspend_remote_watcher(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -154,7 +154,7 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def suspend_local_watcher(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -162,7 +162,7 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def resume_engine(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -170,7 +170,7 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def suspend_engine(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -178,7 +178,7 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def drive_edit(self, url):
         try:
             info = parse_protocol_url(str(url))
@@ -187,14 +187,14 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str, str)
+    @QtCore.Slot(str, str)
     def set_app_update(self, status, version):
         try:
             self._manager.get_updater().force_status(str(status), str(version))
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str, str)
+    @QtCore.Slot(str, str)
     def resume_queue(self, uid, queue):
         try:
             engine = self._get_engine(uid)
@@ -209,7 +209,7 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str, str)
+    @QtCore.Slot(str, str)
     def suspend_queue(self, uid, queue):
         try:
             engine = self._get_engine(uid)
@@ -224,7 +224,7 @@ class DebugDriveApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str, str)
+    @QtCore.Slot(str, str)
     def get_queue(self, uid, queue):
         try:
             engine = self._get_engine(uid)

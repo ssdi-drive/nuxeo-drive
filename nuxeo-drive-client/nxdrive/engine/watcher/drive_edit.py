@@ -12,13 +12,13 @@ from nxdrive.client.common import safe_filename, NotFound
 import os
 from time import sleep
 import shutil
-from PyQt4.QtCore import pyqtSignal
+from PySide.QtCore import Signal
 from Queue import Queue, Empty
 log = get_logger(__name__)
 
 
 class DriveEdit(Worker):
-    localScanFinished = pyqtSignal()
+    localScanFinished = Signal()
     '''
     classdocs
     '''

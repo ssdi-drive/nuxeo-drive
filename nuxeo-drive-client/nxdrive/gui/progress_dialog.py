@@ -3,7 +3,7 @@ Created on 26 juin 2014
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 
 
 class ProgressDialog(QtGui.QDialog):

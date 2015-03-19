@@ -3,7 +3,7 @@ Created on 6 mai 2014
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from threading import Thread
 import time
 from nxdrive.gui.resources import find_icon
@@ -264,7 +264,7 @@ class FolderTreeview(QtGui.QTreeView):
         super(FolderTreeview, self).__init__(parent)
         self.client = client
         self.cache = []
-        #self.childrenLoaded = QtCore.pyqtSignal()
+        #self.childrenLoaded = QtCore.Signal()
         self.root_item = QtGui.QStandardItemModel()
         self.root_item.itemChanged.connect(self.itemChanged)
         self.setModel(self.root_item)

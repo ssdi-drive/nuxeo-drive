@@ -1,5 +1,5 @@
-from PyQt4.QtCore import QObject, QCoreApplication
-from PyQt4.QtCore import pyqtSlot, pyqtSignal
+from PySide.QtCore import QObject, QCoreApplication
+from PySide.QtCore import Slot, Signal
 from nxdrive.logging_config import get_logger
 from nxdrive.commandline import DEFAULT_REMOTE_WATCHER_DELAY
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
@@ -45,27 +45,27 @@ class EngineLogger(QObject):
         else:
             log.log(self._level, msg, pair)
 
-    @pyqtSlot()
+    @Slot()
     def logSyncComplete(self):
         log.log(self._level, "Synchronization is complete")
 
-    @pyqtSlot(object)
+    @Slot(object)
     def logSyncStart(self):
         log.log(self._level, "Synchronization starts ( items)")
 
-    @pyqtSlot(object)
+    @Slot(object)
     def logConflict(self, row_id):
         self._log_pair(row_id, "Conflict on %r")
 
-    @pyqtSlot(object, object)
+    @Slot(object, object)
     def logSync(self, row, metrics):
         log.log(self._level, "Sync on %r with %r", row, metrics)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def logError(self, row_id):
         self._log_pair(row_id, "Error on %r")
 
-    @pyqtSlot(object)
+    @Slot(object)
     def logQueueItem(self, row_id):
         self._log_pair(row_id, "QueueItem on %r")
 
@@ -75,18 +75,18 @@ class EngineLogger(QObject):
 
 
 class Engine(QObject):
-    _start = pyqtSignal()
-    _stop = pyqtSignal()
-    _scanPair = pyqtSignal(str)
-    syncStarted = pyqtSignal(object)
-    syncCompleted = pyqtSignal()
-    syncSuspended = pyqtSignal()
-    syncResumed = pyqtSignal()
-    invalidAuthentication = pyqtSignal()
-    newConflict = pyqtSignal(object)
-    newSync = pyqtSignal(object, object)
-    newError = pyqtSignal(object)
-    newQueueItem = pyqtSignal(object)
+    _start = Signal()
+    _stop = Signal()
+    _scanPair = Signal(str)
+    syncStarted = Signal(object)
+    syncCompleted = Signal()
+    syncSuspended = Signal()
+    syncResumed = Signal()
+    invalidAuthentication = Signal()
+    newConflict = Signal(object)
+    newSync = Signal(object, object)
+    newError = Signal(object)
+    newQueueItem = Signal(object)
     version = "test"
 
     def __init__(self, manager, definition, binder=None, processors=5,
@@ -150,7 +150,7 @@ class Engine(QObject):
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def _check_sync_start(self, row_id):
         if not self._sync_started:
             queue_size = self._queue_manager.get_overall_size()
@@ -383,7 +383,7 @@ class Engine(QObject):
     def get_last_sync(self):
         return self._dao.get_config("last_sync_date", None)
 
-    @pyqtSlot()
+    @Slot()
     def _check_last_sync(self):
         from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
         log.debug('Checking sync completed: queue manager is %s and overall size = %d',
@@ -564,7 +564,7 @@ class Engine(QObject):
     def get_beta_update_url(self):
         return self._dao.get_config("beta_update_url")
 
-    @pyqtSlot()
+    @Slot()
     def invalidate_client_cache(self):
         self._client_cache_timestamps.clear()
 

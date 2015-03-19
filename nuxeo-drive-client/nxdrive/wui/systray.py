@@ -3,7 +3,7 @@ Created on 27 janv. 2015
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from nxdrive.logging_config import get_logger
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
@@ -13,7 +13,7 @@ log = get_logger(__name__)
 
 class WebSystrayApi(WebDriveApi):
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def show_settings(self, page):
         try:
             super(WebSystrayApi, self).show_settings(page)
@@ -21,7 +21,7 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def show_conflicts_resolution(self, uid):
         try:
             super(WebSystrayApi, self).show_conflicts_resolution(uid)
@@ -29,7 +29,7 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str, str)
+    @QtCore.Slot(str, str)
     def show_metadata(self, uid, ref):
         try:
             super(WebSystrayApi, self).show_metadata(uid, ref)
@@ -37,7 +37,7 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def open_remote(self, uid):
         try:
             res = super(WebSystrayApi, self).open_remote(uid)
@@ -47,7 +47,7 @@ class WebSystrayApi(WebDriveApi):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, str, result=str)
+    @QtCore.Slot(str, str, result=str)
     def open_local(self, uid, path):
         try:
             res = super(WebSystrayApi, self).open_local(uid, path)
@@ -57,7 +57,7 @@ class WebSystrayApi(WebDriveApi):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def open_help(self):
         try:
             self._manager.open_help()
@@ -65,7 +65,7 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def open_about(self):
         try:
             self._application.show_settings(section="About")
@@ -73,7 +73,7 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def suspend(self):
         try:
             self._manager.suspend()
@@ -81,7 +81,7 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(str, result=int)
+    @QtCore.Slot(str, result=int)
     def get_syncing_items(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -90,7 +90,7 @@ class WebSystrayApi(WebDriveApi):
             log.exception(e)
             return 0
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def resume(self):
         try:
             self._manager.resume()
@@ -119,7 +119,7 @@ class WebSystrayApi(WebDriveApi):
         menu.addAction(Translator.get("QUIT"), self._application.quit)
         return menu
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def advanced_systray(self):
         try:
             menu = self._create_advanced_menu()
@@ -182,7 +182,7 @@ class WebSystrayView(WebDialog):
         super(WebSystrayView, self).resizeEvent(event)
         self.replace()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def close(self):
         self._icon = None
         super(WebSystrayView, self).close()
@@ -203,16 +203,16 @@ class WebSystray(QtGui.QMenu):
         self._systray_icon = systray_icon
         self.dlg = None
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def dialogDeleted(self):
         self.dlg = None
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onHide(self):
         if self.dlg:
             self.dlg.shouldHide()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onShow(self):
         if self.dlg is None:
             self.dlg = WebSystrayView(self._application, self._systray_icon)

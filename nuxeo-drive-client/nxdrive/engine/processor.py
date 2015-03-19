@@ -9,7 +9,7 @@ from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.common import NotFound
 from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time
-from PyQt4.QtCore import pyqtSignal
+from PySide.QtCore import Signal
 import os
 log = get_logger(__name__)
 
@@ -24,7 +24,7 @@ class Processor(EngineWorker):
     '''
     classdocs
     '''
-    pairSync = pyqtSignal(object, object)
+    pairSync = Signal(object, object)
 
     def __init__(self, engine, item_getter, name=None):
         '''

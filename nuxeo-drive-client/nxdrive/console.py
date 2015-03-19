@@ -1,7 +1,7 @@
 """Console mode application"""
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import QCoreApplication
+from PySide import QtCore
+from PySide.QtCore import QCoreApplication
 from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
@@ -38,11 +38,11 @@ class ConsoleApplication(QCoreApplication):
         log.info('Starting console mode application')
         self.manager.start()
 
-    @QtCore.pyqtSlot(object)
+    @QtCore.Slot(object)
     def connect_engine_quit(self, engine):
         engine.syncCompleted.connect(self.quit_if_sync_completed)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def quit_if_sync_completed(self):
         self.sender().stop()
         if self.manager.is_syncing():
@@ -50,7 +50,7 @@ class ConsoleApplication(QCoreApplication):
         log.debug("All engines completed synchronization")
         self.quit()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def quit_after_timeout(self):
         if self.quit_if_done:
             log.error("Maximum uptime [%ds] expired before all engines completed synchronization", self.quit_timeout)

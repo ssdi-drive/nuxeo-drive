@@ -1,9 +1,9 @@
 """GUI prompt to manage metadata"""
 import sys
 from nxdrive.logging_config import get_logger
-from PyQt4 import QtCore, QtGui, QtWebKit, QtNetwork
-from PyQt4.Qt import QUrl, QObject
-from PyQt4.QtCore import Qt
+from PySide import QtCore, QtGui, QtWebKit, QtNetwork
+from PySide.Qt import QUrl, QObject
+from PySide.QtCore import Qt
 from nxdrive.gui.resources import find_icon
 from nxdrive.wui.dialog import WebDialog
 

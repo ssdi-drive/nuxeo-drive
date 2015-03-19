@@ -1,7 +1,7 @@
 '''
 @author: Remi Cattiau
 '''
-from PyQt4 import QtCore
+from PySide import QtCore
 import time
 from threading import Lock
 from nxdrive.logging_config import get_logger
@@ -73,8 +73,8 @@ class Notification(object):
 
 
 class NotificationService(QtCore.QObject):
-    newNotification = QtCore.pyqtSignal(object)
-    discardNotification = QtCore.pyqtSignal(object)
+    newNotification = QtCore.Signal(object)
+    discardNotification = QtCore.Signal(object)
     '''
     classdocs
     '''

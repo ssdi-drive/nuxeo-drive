@@ -30,12 +30,12 @@ log = get_logger(__name__)
 # Keep Qt an optional dependency for now
 QtGui, QDialog = None, object
 try:
-    from PyQt4 import QtGui
-    from PyQt4 import QtCore
+    from PySide import QtGui
+    from PySide import QtCore
     QDialog = QtGui.QDialog
-    log.debug("Qt / PyQt4 successfully imported")
+    log.debug("Qt / PySide successfully imported")
 except ImportError:
-    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
+    log.warning("Qt / PySide is not installed: GUI is disabled")
     pass
 
 
@@ -69,7 +69,7 @@ class SettingsDialog(QDialog):
                  title=None, callback=None):
         super(SettingsDialog, self).__init__()
         if QtGui is None:
-            raise RuntimeError("PyQt4 is not installed.")
+            raise RuntimeError("PySide is not installed.")
         if title is not None:
             self.setWindowTitle(title)
         icon = find_icon('nuxeo_drive_icon_64.png')
@@ -400,8 +400,8 @@ def prompt_settings(controller, sb_settings, proxy_settings, general_settings,
                    " your Internet connection and retry.")
 
     if QtGui is None:
-        # Qt / PyQt4 is not installed
-        log.error("Qt / PyQt4 is not installed:"
+        # Qt / PySide is not installed
+        log.error("Qt / PySide is not installed:"
                   " use commandline options for binding a server.")
         return False
 

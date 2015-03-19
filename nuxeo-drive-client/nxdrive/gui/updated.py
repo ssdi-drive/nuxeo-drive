@@ -8,11 +8,11 @@ log = get_logger(__name__)
 # Keep Qt an optional dependency for now
 QtGui, QDialog = None, object
 try:
-    from PyQt4 import QtGui
+    from PySide import QtGui
     QDialog = QtGui.QDialog
-    log.debug("Qt / PyQt4 successfully imported")
+    log.debug("Qt / PySide successfully imported")
 except ImportError:
-    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
+    log.warning("Qt / PySide is not installed: GUI is disabled")
     pass
 
 is_dialog_open = False
@@ -27,7 +27,7 @@ class UpdatedDialog(QDialog):
     def __init__(self, version):
         super(UpdatedDialog, self).__init__()
         if QtGui is None:
-            raise RuntimeError("PyQt4 is not installed.")
+            raise RuntimeError("PySide is not installed.")
         self.setWindowTitle('Nuxeo Drive - Update status')
         icon = find_icon('nuxeo_drive_icon_64.png')
         if icon is not None:
@@ -57,8 +57,8 @@ def notify_updated(version):
     global is_dialog_open
 
     if QtGui is None:
-        # Qt / PyQt4 is not installed
-        log.error("Qt / PyQt4 is not installed.")
+        # Qt / PySide is not installed
+        log.error("Qt / PySide is not installed.")
         return False
 
     if is_dialog_open:

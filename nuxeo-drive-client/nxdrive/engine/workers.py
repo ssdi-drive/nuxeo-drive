@@ -1,7 +1,7 @@
 '''
 @author: Remi Cattiau
 '''
-from PyQt4.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QCoreApplication
+from PySide.QtCore import QThread, QObject, Signal, Slot, QCoreApplication
 from threading import current_thread
 from time import sleep, time
 from nxdrive.engine.activity import Action, IdleAction
@@ -27,7 +27,7 @@ class Worker(QObject):
     _thread_id = None
     _engine = None
     _pause = False
-    actionUpdate = pyqtSignal(object)
+    actionUpdate = Signal(object)
 
     def __init__(self, thread=None, name=None):
         super(Worker, self).__init__()
@@ -41,7 +41,7 @@ class Worker(QObject):
         self._name = name
         self._thread.terminated.connect(self._terminated)
 
-    @pyqtSlot()
+    @Slot()
     def quit(self):
         self._continue = False
 
@@ -110,7 +110,7 @@ class Worker(QObject):
             metrics = dict(metrics.items() + self._metrics.items())
         return metrics
 
-    @pyqtSlot()
+    @Slot()
     def run(self):
         self._continue = True
         self._pause = False

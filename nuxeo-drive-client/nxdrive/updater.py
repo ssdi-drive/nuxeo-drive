@@ -13,7 +13,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.engine.workers import PollWorker
 from nxdrive.engine.activity import Action
 from nxdrive.commandline import DEFAULT_UPDATE_CHECK_DELAY
-from PyQt4 import QtCore
+from PySide import QtCore
 
 log = get_logger(__name__)
 
@@ -168,9 +168,9 @@ class AppUpdater(PollWorker):
 
     Basically an Esky wrapper.
     """
-    refreshStatus = QtCore.pyqtSignal()
-    _doUpdate = QtCore.pyqtSignal(str)
-    appUpdated = QtCore.pyqtSignal(str)
+    refreshStatus = QtCore.Signal()
+    _doUpdate = QtCore.Signal(str)
+    appUpdated = QtCore.Signal(str)
 
     def __init__(self, manager, version_finder=None, check_interval=DEFAULT_UPDATE_CHECK_DELAY,
                  esky_app=None, local_update_site=False):
@@ -224,7 +224,7 @@ class AppUpdater(PollWorker):
         if self._enable:
             self.refreshStatus.emit()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _poll(self):
         if self.last_status != UPDATE_STATUS_UPDATING:
             # Refresh update site URL
@@ -445,7 +445,7 @@ class AppUpdater(PollWorker):
         self.last_status = (UPDATE_STATUS_UPDATING, str(version), 0)
         self._doUpdate.emit(version)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def _update(self, version):
         version = str(version)
         if sys.platform == 'win32':

@@ -3,7 +3,7 @@ Created on 26 juin 2014
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from folders_treeview import Overlay
 from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
@@ -35,7 +35,7 @@ class RetryButton(QtGui.QPushButton):
         self._view = view
         self.clicked.connect(self.retry)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def retry(self):
         self._view._dao.reset_error(self._pair)
         self._view.refresh(self._pair)

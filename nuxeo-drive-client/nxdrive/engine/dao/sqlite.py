@@ -4,7 +4,7 @@ from threading import Lock, local, current_thread
 from nxdrive.engine.dao.model import PAIR_STATES
 from datetime import datetime
 from nxdrive.logging_config import get_logger
-from PyQt4.QtCore import pyqtSignal, QObject
+from PySide.QtCore import Signal, QObject
 log = get_logger(__name__)
 
 
@@ -253,7 +253,7 @@ class EngineDAO(ConfigurationDAO):
     '''
     classdocs
     '''
-    newConflict = pyqtSignal(object)
+    newConflict = Signal(object)
     def __init__(self, db):
         '''
         Constructor

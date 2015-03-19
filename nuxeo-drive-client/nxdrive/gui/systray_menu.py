@@ -3,7 +3,7 @@ Created on 9 mai 2014
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 import time
 TIME_FORMAT_PATTERN = '%d %b %H:%M'
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE

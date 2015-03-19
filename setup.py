@@ -347,11 +347,11 @@ class NuxeoDriveSetup(object):
         print "Created JSON metadata file for frozen app: " + json_file
 
         includes = [
-            "PyQt4",
-            "PyQt4.QtCore",
-            "PyQt4.QtNetwork",
-            "PyQt4.QtGui",
-            "atexit",  # implicitly required by PyQt4
+            "PySide",
+            "PySide.QtCore",
+            "PySide.QtNetwork",
+            "PySide.QtGui",
+            "atexit",  # implicitly required by PySide
             "sqlalchemy.dialects.sqlite",
             "cffi",
             "xattr",

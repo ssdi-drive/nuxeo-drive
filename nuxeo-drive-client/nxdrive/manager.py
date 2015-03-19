@@ -1,4 +1,4 @@
-from PyQt4 import QtCore
+from PySide import QtCore
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
 from nxdrive.logging_config import get_logger, FILE_HANDLER
@@ -140,17 +140,17 @@ class Manager(QtCore.QObject):
     '''
     classdocs
     '''
-    proxyUpdated = QtCore.pyqtSignal(object)
-    clientUpdated = QtCore.pyqtSignal(object, object)
-    engineNotFound = QtCore.pyqtSignal(object)
-    newEngine = QtCore.pyqtSignal(object)
-    dropEngine = QtCore.pyqtSignal(object)
-    initEngine = QtCore.pyqtSignal(object)
-    aboutToStart = QtCore.pyqtSignal(object)
-    started = QtCore.pyqtSignal()
-    stopped = QtCore.pyqtSignal()
-    suspended = QtCore.pyqtSignal()
-    resumed = QtCore.pyqtSignal()
+    proxyUpdated = QtCore.Signal(object)
+    clientUpdated = QtCore.Signal(object, object)
+    engineNotFound = QtCore.Signal(object)
+    newEngine = QtCore.Signal(object)
+    dropEngine = QtCore.Signal(object)
+    initEngine = QtCore.Signal(object)
+    aboutToStart = QtCore.Signal(object)
+    started = QtCore.Signal()
+    stopped = QtCore.Signal()
+    suspended = QtCore.Signal()
+    resumed = QtCore.Signal()
     _singleton = None
 
     @staticmethod

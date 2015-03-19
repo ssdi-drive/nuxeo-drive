@@ -3,7 +3,7 @@ Created on 27 janv. 2015
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtCore
+from PySide import QtCore
 from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
@@ -18,7 +18,7 @@ class WebSettingsApi(WebDriveApi):
     def __init__(self, application, dlg=None):
         super(WebSettingsApi, self).__init__(application, dlg)
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_default_section(self):
         try:
             return self._dialog._section
@@ -26,7 +26,7 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_default_nuxeo_drive_folder(self):
         try:
             folder = self._manager.get_default_nuxeo_drive_folder()
@@ -35,7 +35,7 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def unbind_server(self, uid):
         try:
             self._manager.unbind_engine(str(uid))
@@ -43,7 +43,7 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
         return ""
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.Slot(str, result=str)
     def filters_dialog(self, uid):
         try:
             engine = self._get_engine(uid)
@@ -65,7 +65,7 @@ class WebSettingsApi(WebDriveApi):
         self._manager.bind_server(local_folder, url, username, password, name, start_engine)
         return ""
 
-    @QtCore.pyqtSlot(str, str, str, str, str, result=str)
+    @QtCore.Slot(str, str, str, str, str, result=str)
     def bind_server(self, local_folder, url, username, password, name):
         try:
             # Allow to override for other exception handling
@@ -85,7 +85,7 @@ class WebSettingsApi(WebDriveApi):
             # Map error here
             return "CONNECTION_UNKNOWN"
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.Slot(result=str)
     def get_proxy_settings(self):
         try:
             result = dict()
@@ -102,7 +102,7 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, str, str, str, str, str, str, result=str)
+    @QtCore.Slot(str, str, str, str, str, str, str, result=str)
     def set_proxy_settings(self, config='System', proxy_type=None,
                  server=None, port=None,
                  authenticated=False, username=None, password=None):

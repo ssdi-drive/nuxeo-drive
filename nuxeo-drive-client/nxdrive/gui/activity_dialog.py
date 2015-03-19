@@ -3,7 +3,7 @@ Created on 26 janv. 2015
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from nxdrive.engine.activity import FileAction
 from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
@@ -63,7 +63,7 @@ class EngineWidget(QtGui.QWidget):
         self.setLayout(self._layout)
         self.update()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def remove_thread(self):
         to_delete = []
         for tid, child in self._childs.iteritems():
@@ -113,7 +113,7 @@ class ActivityDialog(QtGui.QDialog):
         self.timer.start(1000)
         self.update()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def update(self):
         childs = self._childs.copy()
         for uid, engine in self._manager.get_engines().iteritems():

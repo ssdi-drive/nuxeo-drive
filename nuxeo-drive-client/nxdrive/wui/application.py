@@ -20,13 +20,13 @@ TIME_FORMAT_PATTERN = '%d %b %H:%M'
 # Keep Qt an optional dependency for now
 QtGui, QApplication, QObject = None, object, object
 try:
-    from PyQt4 import QtGui
-    from PyQt4 import QtCore
+    from PySide import QtGui
+    from PySide import QtCore
     QApplication = QtGui.QApplication
     QObject = QtCore.QObject
-    log.debug("Qt / PyQt4 successfully imported")
+    log.debug("Qt / PySide successfully imported")
 except ImportError:
-    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
+    log.warning("Qt / PySide is not installed: GUI is disabled")
     pass
 
 
@@ -140,7 +140,7 @@ class Application(QApplication):
         Translator(self.manager, self.get_htmlpage('i18n.js'),
                         self.manager.get_config("locale", self.options.locale))
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def change_systray_icon(self):
         syncing = False
         engines = self.manager.get_engines()
@@ -168,7 +168,7 @@ class Application(QApplication):
         from nxdrive.wui.conflicts import WebConflictsApi
         return WebDialog(self, "conflicts.html", api=WebConflictsApi(self, engine))
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def show_conflicts_resolution(self, engine):
         conflicts = self._get_unique_dialog("conflicts")
         if conflicts is None:
@@ -178,7 +178,7 @@ class Application(QApplication):
             conflicts.set_engine(engine)
         self._show_window(conflicts)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def show_settings(self, section="Accounts"):
         if section is None:
             section = "Accounts"
@@ -211,7 +211,7 @@ class Application(QApplication):
         dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         dialog.destroyed.connect(self._destroy_dialog)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def destroyed_filters_dialog(self):
         self.filters_dlg = None
 
@@ -219,7 +219,7 @@ class Application(QApplication):
         from nxdrive.gui.folders_dialog import FiltersDialog
         return FiltersDialog(self, engine)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def show_filters(self, engine):
         if self.filters_dlg is not None:
             self.filters_dlg.close()
@@ -240,7 +240,7 @@ class Application(QApplication):
         self.webEngineWidget = WebActivityDialog(self)
         self.webEngineWidget.show()
 
-    @QtCore.pyqtSlot(object)
+    @QtCore.Slot(object)
     def _connect_engine(self, engine):
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
@@ -248,13 +248,13 @@ class Application(QApplication):
         engine.syncSuspended.connect(self.change_systray_icon)
         engine.syncResumed.connect(self.change_systray_icon)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _debug_toggle_invalid_credentials(self):
         sender = self.sender()
         engine = sender.data().toPyObject()
         engine.set_invalid_credentials(not engine.has_invalid_credentials())
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _debug_show_file_status(self):
         from nxdrive.gui.status_dialog import StatusDialog
         sender = self.sender()
@@ -290,7 +290,7 @@ class Application(QApplication):
         from nxdrive.debug.wui.engine import EngineDialog
         return EngineDialog(self)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def show_debug_window(self):
         debug = self._get_unique_dialog("debug")
         if debug is None:
@@ -421,7 +421,7 @@ class Application(QApplication):
             # Resume sync
             self.manager.resume()
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def app_updated(self, updated_version):
         self.updated_version = str(updated_version)
         log.info('Quitting Nuxeo Drive and restarting updated version %s', self.updated_version)
@@ -429,7 +429,7 @@ class Application(QApplication):
         log.debug("Exiting Qt application")
         self.quit()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def restart(self):
         """ Restart application by loading updated executable into current process"""
         current_version = self.manager.get_updater().get_active_version()

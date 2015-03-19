@@ -18,14 +18,14 @@ from nxdrive.utils import path_join
 from urllib2 import HTTPError, URLError
 import os
 log = get_logger(__name__)
-from PyQt4.QtCore import pyqtSignal, pyqtSlot
+from PySide.QtCore import Signal, Slot
 from nxdrive.engine.workers import ThreadInterrupt
 
 
 class RemoteWatcher(EngineWorker):
-    initiate = pyqtSignal()
-    updated = pyqtSignal()
-    remoteScanFinished = pyqtSignal()
+    initiate = Signal()
+    updated = Signal()
+    remoteScanFinished = Signal()
 
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine)
@@ -64,7 +64,7 @@ class RemoteWatcher(EngineWorker):
         metrics['next_polling'] = self._current_interval
         return dict(metrics.items() + self._metrics.items())
 
-    @pyqtSlot()
+    @Slot()
     def invalidate_client_cache(self):
         self._client = None
 
@@ -108,7 +108,7 @@ class RemoteWatcher(EngineWorker):
         log.debug("Remote scan finished in %dms", self._metrics['last_remote_scan_time'])
         self.remoteScanFinished.emit()
 
-    @pyqtSlot(str)
+    @Slot(str)
     def scan_pair(self, remote_path):
         if remote_path is None:
             return
