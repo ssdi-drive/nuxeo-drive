@@ -148,6 +148,10 @@ class CliHandler(object):
             help="Allow debugging with a PyDev server."
         )
         common_parser.add_argument(
+            "--sqlite-read-share", default=False, action="store_true",
+            help="Allow debugging with a PyDev server."
+        )
+        common_parser.add_argument(
             "--delay", default=self.default_remote_watcher_delay, type=int,
             help="Delay in seconds for remote polling.")
         common_parser.add_argument(

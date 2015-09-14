@@ -218,6 +218,7 @@ class Manager(QtCore.QObject):
         self.proxy_exceptions = None
         self._app_updater = None
         self._dao = None
+        self._sqlite_read_share = options.sqlite_read_share
         self._create_dao()
         if options.proxy_server is not None:
             proxy = ProxySettings()
@@ -321,6 +322,9 @@ class Manager(QtCore.QObject):
     def is_debug(self):
         return self._debug
 
+    def is_sqlite_read_share(self):
+        return self._sqlite_read_share
+
     def is_checkfs(self):
         return not self._nofscheck
 
@@ -416,7 +420,7 @@ class Manager(QtCore.QObject):
                 return
             except Exception as e:
                 log.error(e, exc_info=True)
-        self._dao = ManagerDAO(self._get_db())
+        self._dao = ManagerDAO(self._get_db(), share_read_connection=self._sqlite_read_share)
 
     def _create_updater(self, update_check_delay):
         # Enable the capacity to extend the AppUpdater

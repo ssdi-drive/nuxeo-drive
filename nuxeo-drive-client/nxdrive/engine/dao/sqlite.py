@@ -122,7 +122,7 @@ class ConfigurationDAO(QObject):
     classdocs
     '''
 
-    def __init__(self, db):
+    def __init__(self, db, share_read_connection=False):
         '''
         Constructor
         '''
@@ -132,6 +132,7 @@ class ConfigurationDAO(QObject):
         migrate = os.path.exists(self._db)
         # For testing purpose only should always be True
         self.share_connection = True
+        self._share_read = share_read_connection
         self.auto_commit = True
         self.schema_version = self.get_schema_version()
         self.in_tx = None
@@ -141,6 +142,10 @@ class ConfigurationDAO(QObject):
             self._lock = Lock()
         else:
             self._lock = FakeLock()
+        if self._share_read:
+            self._read_lock = self._lock
+        else:
+            self._read_lock = FakeLock()
         # Use to clean
         self._connections = []
         self._create_main_conn()
@@ -234,6 +239,9 @@ class ConfigurationDAO(QObject):
         return self._get_read_connection(factory)
 
     def _get_read_connection(self, factory=CustomRow):
+        if self._share_read:
+            self._conn.row_factory = factory
+            return self._conn
         # If in transaction
         if self.in_tx is not None:
             if current_thread().ident != self.in_tx:
@@ -303,11 +311,15 @@ class ConfigurationDAO(QObject):
             self._lock.release()
 
     def get_config(self, name, default=None):
-        c = self._get_read_connection().cursor()
-        obj = c.execute("SELECT value FROM Configuration WHERE name=?",(name,)).fetchone()
-        if obj is None:
-            return default
-        return obj.value
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection().cursor()
+            obj = c.execute("SELECT value FROM Configuration WHERE name=?",(name,)).fetchone()
+            if obj is None:
+                return default
+            return obj.value
+        finally:
+            self._read_lock.release()
 
 
 class ManagerDAO(ConfigurationDAO):
@@ -345,12 +357,16 @@ class ManagerDAO(ConfigurationDAO):
             self._lock.release()
 
     def get_notifications(self, discarded=True):
-        from nxdrive.notification import Notification
-        c = self._get_read_connection().cursor()
-        if discarded:
-            return c.execute("SELECT * FROM Notifications").fetchall()
-        else:
-            return c.execute("SELECT * FROM Notifications WHERE (flags & " + str(Notification.FLAG_DISCARD) + ") = 0").fetchall()
+        self._read_lock.acquire()
+        try:
+            from nxdrive.notification import Notification
+            c = self._get_read_connection().cursor()
+            if discarded:
+                return c.execute("SELECT * FROM Notifications").fetchall()
+            else:
+                return c.execute("SELECT * FROM Notifications WHERE (flags & " + str(Notification.FLAG_DISCARD) + ") = 0").fetchall()
+        finally:
+            self._read_lock.release()
 
     def discard_notification(self, uid):
         from nxdrive.notification import Notification
@@ -381,8 +397,12 @@ class ManagerDAO(ConfigurationDAO):
             self.update_config(SCHEMA_VERSION, 2)
 
     def get_engines(self):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM Engines").fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM Engines").fetchall()
+        finally:
+            self._read_lock.release()
 
     def add_engine(self, engine, path, key, name):
         result = None
@@ -415,13 +435,13 @@ class EngineDAO(ConfigurationDAO):
     classdocs
     '''
     newConflict = pyqtSignal(object)
-    def __init__(self, db):
+    def __init__(self, db, share_read_connection=False):
         '''
         Constructor
         '''
         self._filters = None
         self._queue_manager = None
-        super(EngineDAO, self).__init__(db)
+        super(EngineDAO, self).__init__(db, share_read_connection=share_read_connection)
         self._filters = self.get_filters()
         self.reinit_processors()
 
@@ -587,13 +607,17 @@ class EngineDAO(ConfigurationDAO):
         return row_id
 
     def get_last_files(self, number, direction=""):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        condition = ""
-        if direction == "remote":
-            condition = " AND last_transfer = 'upload'"
-        elif direction == "local":
-            condition = " AND last_transfer = 'download'"
-        return c.execute("SELECT * FROM States WHERE pair_state='synchronized' AND folderish=0" + condition + " ORDER BY last_sync_date DESC LIMIT " + str(number)).fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            condition = ""
+            if direction == "remote":
+                condition = " AND last_transfer = 'upload'"
+            elif direction == "local":
+                condition = " AND last_transfer = 'download'"
+            return c.execute("SELECT * FROM States WHERE pair_state='synchronized' AND folderish=0" + condition + " ORDER BY last_sync_date DESC LIMIT " + str(number)).fetchall()
+        finally:
+            self._read_lock.release()
 
     def _get_to_sync_condition(self):
         return "pair_state != 'synchronized' AND pair_state != 'unsynchronized'"
@@ -671,12 +695,20 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def get_valid_duplicate_file(self, digest):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_digest=? AND pair_state='synchronized'", (digest,)).fetchone()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE remote_digest=? AND pair_state='synchronized'", (digest,)).fetchone()
+        finally:
+            self._read_lock.release()
 
     def get_remote_children(self, ref):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
+        finally:
+            self._read_lock.release()
 
     def get_conflict_count(self):
         return self.get_count("pair_state='conflicted'")
@@ -700,33 +732,61 @@ class EngineDAO(ConfigurationDAO):
         query = "SELECT COUNT(*) as count FROM States"
         if condition is not None:
             query = query + " WHERE " + condition
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute(query).fetchone().count
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute(query).fetchone().count
+        finally:
+            self._read_lock.release()
 
     def get_global_size(self):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT SUM(size) as sum FROM States WHERE pair_state='synchronized'").fetchone().sum
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT SUM(size) as sum FROM States WHERE pair_state='synchronized'").fetchone().sum
+        finally:
+            self._read_lock.release()
 
     def get_conflicts(self):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE pair_state='conflicted'").fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE pair_state='conflicted'").fetchall()
+        finally:
+            self._read_lock.release()
 
     def get_errors(self, limit=3):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE error_count>?", (limit,)).fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE error_count>?", (limit,)).fetchall()
+        finally:
+            self._read_lock.release()
 
     def get_local_children(self, path):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE local_parent_path=?", (path,)).fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE local_parent_path=?", (path,)).fetchall()
+        finally:
+            self._read_lock.release()
 
     def get_states_from_partial_local(self, path):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE local_path LIKE ?", (path + '%',)).fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE local_path LIKE ?", (path + '%',)).fetchall()
+        finally:
+            self._read_lock.release()
 
     def get_first_state_from_partial_remote(self, ref):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_ref LIKE ? ORDER BY last_remote_updated ASC LIMIT 1",
-                         ('%' + ref,)).fetchone()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE remote_ref LIKE ? ORDER BY last_remote_updated ASC LIMIT 1",
+                             ('%' + ref,)).fetchone()
+        finally:
+            self._read_lock.release()
 
     def get_normal_state_from_remote(self, ref):
         # TODO Select the only states that is not a collection
@@ -739,12 +799,20 @@ class EngineDAO(ConfigurationDAO):
         # remote_path root is empty, should refactor this
         if path == '/':
             path = ""
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_ref=? AND remote_parent_path=?", (ref,path)).fetchone()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE remote_ref=? AND remote_parent_path=?", (ref,path)).fetchone()
+        finally:
+            self._read_lock.release()
 
     def get_states_from_remote(self, ref):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_ref=?", (ref,)).fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE remote_ref=?", (ref,)).fetchall()
+        finally:
+            self._read_lock.release()
 
     def get_state_from_id(self, row_id, from_write=False):
         # Dont need to read from write as auto_commit is True
@@ -755,11 +823,14 @@ class EngineDAO(ConfigurationDAO):
                 self._lock.acquire()
                 c = self._get_write_connection(factory=StateRow).cursor()
             else:
+                self._read_lock.acquire()
                 c = self._get_read_connection(factory=StateRow).cursor()
             state = c.execute("SELECT * FROM States WHERE id=?", (row_id,)).fetchone()
         finally:
             if from_write:
                 self._lock.release()
+            else:
+                self._read_lock.release()
         return state
 
     def _get_recursive_condition(self, doc_pair):
@@ -876,8 +947,12 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def get_state_from_local(self, path):
-        c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection(factory=StateRow).cursor()
+            return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
+        finally:
+            self._read_lock.release()
 
     def insert_remote_state(self, info, remote_parent_path, local_path, local_parent_path):
         pair_state = PAIR_STATES.get(('unknown','created'))
@@ -1124,8 +1199,12 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def get_paths_to_scan(self):
-        c = self._get_read_connection().cursor()
-        return c.execute(u"SELECT * FROM ToRemoteScan").fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection().cursor()
+            return c.execute(u"SELECT * FROM ToRemoteScan").fetchall()
+        finally:
+            self._read_lock.release()
 
     def add_path_scanned(self, path):
         path = self._clean_filter_path(path)
@@ -1155,9 +1234,13 @@ class EngineDAO(ConfigurationDAO):
 
     def is_path_scanned(self, path):
         path = self._clean_filter_path(path)
-        c = self._get_read_connection().cursor()
-        row = c.execute("SELECT COUNT(path) FROM RemoteScan WHERE path=? LIMIT 1", (path,)).fetchone()
-        return row[0] > 0
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection().cursor()
+            row = c.execute("SELECT COUNT(path) FROM RemoteScan WHERE path=? LIMIT 1", (path,)).fetchone()
+            return row[0] > 0
+        finally:
+            self._read_lock.release()
 
     def get_previous_sync_file(self, ref, sync_mode=None):
         mode_condition = ""
@@ -1166,8 +1249,12 @@ class EngineDAO(ConfigurationDAO):
         state = self.get_normal_state_from_remote(ref)
         if state is None:
             return None
-        c = self._get_read_connection().cursor()
-        return c.execute(u"SELECT * FROM States WHERE last_sync_date>? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection().cursor()
+            return c.execute(u"SELECT * FROM States WHERE last_sync_date>? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
+        finally:
+            self._read_lock.release()
 
     def get_batch_sync_ignore(self):
         return "AND ( pair_state != 'unsynchronized' AND pair_state != 'conflicted') AND folderish=0 "
@@ -1179,18 +1266,30 @@ class EngineDAO(ConfigurationDAO):
         state = self.get_normal_state_from_remote(ref)
         if state is None:
             return None
-        c = self._get_read_connection().cursor()
-        return c.execute(u"SELECT * FROM States WHERE last_sync_date<? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date DESC LIMIT 1", (state.last_sync_date,)).fetchone()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection().cursor()
+            return c.execute(u"SELECT * FROM States WHERE last_sync_date<? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date DESC LIMIT 1", (state.last_sync_date,)).fetchone()
+        finally:
+            self._read_lock.release()
 
     def get_next_folder_file(self, ref):
         state = self.get_normal_state_from_remote(ref)
-        c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_name > ? AND folderish=0 ORDER BY remote_name ASC LIMIT 1", (state.remote_parent_ref,state.remote_name)).fetchone()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection().cursor()
+            return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_name > ? AND folderish=0 ORDER BY remote_name ASC LIMIT 1", (state.remote_parent_ref,state.remote_name)).fetchone()
+        finally:
+            self._read_lock.release()
 
     def get_previous_folder_file(self, ref):
         state = self.get_normal_state_from_remote(ref)
-        c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_name < ? AND folderish=0 ORDER BY remote_name DESC LIMIT 1", (state.remote_parent_ref,state.remote_name)).fetchone()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection().cursor()
+            return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_name < ? AND folderish=0 ORDER BY remote_name DESC LIMIT 1", (state.remote_parent_ref,state.remote_name)).fetchone()
+        finally:
+            self._read_lock.release()
 
     def is_filter(self, path):
         path = self._clean_filter_path(path)
@@ -1200,8 +1299,12 @@ class EngineDAO(ConfigurationDAO):
             return False
 
     def get_filters(self):
-        c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM Filters").fetchall()
+        self._read_lock.acquire()
+        try:
+            c = self._get_read_connection().cursor()
+            return c.execute("SELECT * FROM Filters").fetchall()
+        finally:
+            self._read_lock.release()
 
     def add_filter(self, path):
         if self.is_filter(path):

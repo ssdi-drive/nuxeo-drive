@@ -427,7 +427,7 @@ class Engine(QObject):
 
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import EngineDAO
-        return EngineDAO(self._get_db_file())
+        return EngineDAO(self._get_db_file(), share_read_connection=self._manager.is_sqlite_read_share())
 
     def get_remote_url(self):
         server_link = self._dao.get_config("server_url", "")
