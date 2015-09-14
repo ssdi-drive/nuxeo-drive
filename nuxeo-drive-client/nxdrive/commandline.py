@@ -148,7 +148,7 @@ class CliHandler(object):
             help="Allow debugging with a PyDev server."
         )
         common_parser.add_argument(
-            "--sqlite-read-share", default=False, action="store_true",
+            "--sqlite-read-share", default=True, action="store_true",
             help="Allow debugging with a PyDev server."
         )
         common_parser.add_argument(
