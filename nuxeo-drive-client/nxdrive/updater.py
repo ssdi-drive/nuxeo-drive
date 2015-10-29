@@ -348,8 +348,8 @@ class AppUpdater(PollWorker):
                 self._do_update(version)
                 self.appUpdated.emit(version)
                 return
-            except Exception as e:
-                log.debug("Updater issue will try to get root: %r", e)
+            except:
+                log.exception("Updater issue, will try to get root")
             try:
                 self.esky_app.get_root()
                 self._do_update(version)
