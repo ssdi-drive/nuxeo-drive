@@ -39,7 +39,7 @@ class LocalWatcher(EngineWorker):
         self._event_handler = None
         self._windows_queue_threshold = 50
         # Delay for the scheduled recursive scans of a created / modified / moved folder under Windows
-        self._windows_folder_scan_delay = 10000  # 10 seconds
+        self._windows_folder_scan_delay = 0  # 10 seconds
         self._windows_watchdog_event_buffer = 8192
         self._windows = (sys.platform == 'win32')
         if self._windows:
