@@ -20,8 +20,11 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive import __version__
 from nxdrive.utils import ENCODING, OSX_SUFFIX
+from nxdrive.utils import version_compare
 
 log = get_logger(__name__)
+
+METADATA_VIEW_SERVER_MIN_VERSION = '6.0'
 
 
 try:
@@ -320,7 +323,21 @@ class Manager(QtCore.QObject):
 
     def _handle_os(self):
         # Be sure to register os
-        self._os.register_contextual_menu()
+
+        # Register contextual menu if metadata view is available server-side.
+        # For now let's consider that it is the case if all server bindings have a server version greater or equal than
+        # the minimum required.
+        # Yet we should unregister contextual menu when binding a non compliant server, in fact ideally only display
+        # the menu for files under a local folder bound to a compliant server.
+        register_contextual_menu = True
+        bindings = self.list_server_bindings()
+        for binding in bindings:
+            if version_compare(binding.server_version, METADATA_VIEW_SERVER_MIN_VERSION) < 0:
+                register_contextual_menu = False
+                break
+        if register_contextual_menu:
+            self._os.register_contextual_menu()
+
         self._os.register_protocol_handlers()
         if self.get_auto_start():
             self._os.register_startup()
