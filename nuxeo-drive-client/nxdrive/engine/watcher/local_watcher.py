@@ -6,6 +6,7 @@ from nxdrive.logging_config import get_logger
 from watchdog.events import FileSystemEventHandler
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.activity import Action
 from Queue import Queue
 import sys
@@ -41,7 +42,7 @@ class LocalWatcher(EngineWorker):
         # Delay for the scheduled recursive scans of a created / modified / moved folder under Windows
         self._windows_folder_scan_delay = 0  # 10 seconds
         self._windows_watchdog_event_buffer = 8192
-        self._windows = (sys.platform == 'win32')
+        self._windows = AbstractOSIntegration.is_windows()
         if self._windows:
             log.debug('Windows detected so delete event will be delayed by %dms', WIN_MOVE_RESOLUTION_PERIOD)
         # TODO Review to delete
@@ -110,7 +111,7 @@ class LocalWatcher(EngineWorker):
                 while (not self._watchdog_queue.empty()):
                     # Dont retest if already local scan
                     if not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
-                        log.debug('Windows queue threshold exceeded, will trigger local scan')
+                        log.debug('Windows queue threshold exceeded, will trigger local scan: %d events', self._watchdog_queue.qsize())
                         trigger_local_scan = True
                         self._delete_events.clear()
                         self._folder_scan_events.clear()
@@ -129,7 +130,10 @@ class LocalWatcher(EngineWorker):
             self._stop_watchdog()
 
     def win_queue_empty(self):
-        return len(self._delete_events) == 0
+        return not self._delete_events
+
+    def get_win_queue_size(self):
+        return len(self._delete_events)
 
     def _win_delete_check(self):
         if self._windows and self._win_delete_interval < int(round(time() * 1000)) - WIN_MOVE_RESOLUTION_PERIOD:
@@ -168,7 +172,10 @@ class LocalWatcher(EngineWorker):
             self._win_lock.release()
 
     def win_folder_scan_empty(self):
-        return len(self._folder_scan_events) == 0
+        return not self._folder_scan_events
+
+    def get_win_folder_scan_size(self):
+        return len(self._folder_scan_events)
 
     def _win_folder_scan_check(self):
         if (self._windows and self._win_folder_scan_interval > 0 and self._windows_folder_scan_delay > 0
@@ -258,6 +265,18 @@ class LocalWatcher(EngineWorker):
     def empty_events(self):
         return self._watchdog_queue.empty()
 
+    def get_watchdog_queue_size(self):
+        return self._watchdog_queue.qsize()
+
+    def get_creation_time(self, child_full_path):
+        if self._windows:
+            return os.path.getctime(child_full_path)
+        else:
+            stat = os.stat(child_full_path)
+            if hasattr(stat, "st_birthtime"):
+                return stat.st_birthtime
+            return 0
+
     def _scan_recursive(self, info, recursive=True):
         log.debug('Starting recursive local scan of %r', info.path)
         if recursive:
@@ -318,9 +337,9 @@ class LocalWatcher(EngineWorker):
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
                             # possible move-then-copy case, nxdrive-471
                             child_full_path = self.client._abspath(child_info.path)
-                            child_creation_time = os.path.getctime(child_full_path)
+                            child_creation_time = self.get_creation_time(child_full_path)
                             doc_full_path = self.client._abspath(doc_pair.local_path)
-                            doc_creation_time = os.path.getctime(doc_full_path)
+                            doc_creation_time = self.get_creation_time(doc_full_path)
                             log.trace('child_cre_time=%d, doc_cre_time=%d', child_creation_time, doc_creation_time)
                         if doc_pair is None:
                             log.debug("Can't find reference for %s in database, put it in locally_created state",
@@ -335,14 +354,14 @@ class LocalWatcher(EngineWorker):
                             log.debug('Skip pair as it is not a real move: %r', doc_pair)
                             continue
                         elif not self.client.exists(doc_pair.local_path) or \
-                                ( self.client.exists(doc_pair.local_path) and child_creation_time <= doc_creation_time):
+                                ( self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time):
                                 # If file exists at old location, and the file at the original location is newer,
                                 #   it is moved to the new location earlier then copied back
                             log.debug("Found a moved file")
                             doc_pair.local_state = 'moved'
                             self._dao.update_local_state(doc_pair, child_info)
                             self._protected_files[doc_pair.remote_ref] = True
-                            if self.client.exists(doc_pair.local_path) and child_creation_time <= doc_creation_time:
+                            if self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time:
                                 # Need to put back the new created - need to check maybe if already there
                                 self.client.remove_remote_id(doc_pair.local_path)
                                 self._dao.insert_local_state(self.client.get_info(doc_pair.local_path), os.path.dirname(doc_pair.local_path))
@@ -752,13 +771,13 @@ class LocalWatcher(EngineWorker):
                         else:
                             # possible move-then-copy case, nxdrive-471
                             doc_pair_full_path = self.client._abspath(rel_path)
-                            doc_pair_creation_time = os.path.getctime(doc_pair_full_path)
+                            doc_pair_creation_time = self.get_creation_time(doc_pair_full_path)
                             from_pair_full_path = self.client._abspath(from_pair.local_path)
-                            from_pair_creation_time = os.path.getctime(from_pair_full_path)
+                            from_pair_creation_time = self.get_creation_time(from_pair_full_path)
                             log.trace('doc_pair_full_path=%s, doc_pair_creation_time=%s, from_pair_full_path=%s, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
                             # If file at the original location is newer,
                             #   it is moved to the new location earlier then copied back (what else can it be?)
-                            if from_pair_creation_time > doc_pair_creation_time:
+                            if not from_pair_creation_time < doc_pair_creation_time:
                                 from_pair.local_state = 'moved'
                                 self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                                 self._dao.insert_local_state(self.client.get_info(from_pair.local_path), os.path.dirname(from_pair.local_path))

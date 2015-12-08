@@ -552,8 +552,15 @@ class Engine(QObject):
         qm_active = self._queue_manager.active()
         qm_size = self._queue_manager.get_overall_size()
         empty_polls = self._remote_watcher.get_metrics()["empty_polls"]
-        log.debug('Checking sync completed: queue manager is %s, overall size = %d, empty polls count = %d',
-                  'active' if qm_active else 'inactive', qm_size, empty_polls)
+        if not AbstractOSIntegration.is_windows():
+            win_info = 'not Windows'
+        else:
+            win_info = 'Windows with win queue size = %d and win folder scan size = %d' % (
+                self._local_watcher.get_win_queue_size(), self._local_watcher.get_win_folder_scan_size())
+        log.debug('Checking sync completed: queue manager is %s, overall size = %d, empty polls count = %d'
+                  ', watchdog queue size = %d, %s',
+                  'active' if qm_active else 'inactive', qm_size, empty_polls,
+                  self._local_watcher.get_watchdog_queue_size(), win_info)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
                 and self._local_watcher.empty_events()
@@ -850,7 +857,7 @@ class Engine(QObject):
 
         self._dao.insert_local_state(local_info, '')
         row = self._dao.get_state_from_local('/')
-        self._dao.update_remote_state(row, remote_info, '', versionned=False)
+        self._dao.update_remote_state(row, remote_info, remote_parent_path='', versionned=False)
         local_client.set_root_id(self._server_url + "|" + self._remote_user +
                             "|" + self._manager.device_id + "|" + self._uid)
         self._dao.synchronize_state(row)
@@ -959,9 +966,12 @@ class Engine(QObject):
                 rest_client = self.get_rest_api_client()
                 response = rest_client.get_user_full_name(userid)
                 if response and 'properties' in response:
-                    fullname = " ".join([response['properties']['firstName'],
-                                         response['properties']['lastName']]).strip()
-                    self._user_cache[userid] = fullname
+                    properties = response['properties']
+                    firstName = properties.get('firstName')
+                    lastName = properties.get('lastName')
+                    if firstName and lastName:
+                        fullname = " ".join([firstName, lastName]).strip()
+                        self._user_cache[userid] = fullname
         except urllib2.URLError as e:
             log.exception(e)
         return fullname

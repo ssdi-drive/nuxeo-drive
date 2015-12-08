@@ -389,7 +389,8 @@ class Processor(EngineWorker):
                 fs_item_info = remote_client.get_info(remote_ref)
                 if not fs_item_info.path.startswith(remote_parent_path):
                     fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
-                self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path, versionned=False)
+                self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
+                                              versionned=False)
                 self._dao.synchronize_state(doc_pair)
                 return
 
@@ -435,7 +436,7 @@ class Processor(EngineWorker):
                 remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
-            self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path,
+            self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
                                           versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
             try:
@@ -531,7 +532,7 @@ class Processor(EngineWorker):
                 remote_info = remote_client.move(doc_pair.remote_ref,
                             parent_pair.remote_ref)
                 moved = True
-                self._dao.update_remote_state(doc_pair, remote_info, parent_path, versionned=False)
+                self._dao.update_remote_state(doc_pair, remote_info, remote_parent_path=parent_path, versionned=False)
             else:
                 # Move it back
                 self._handle_failed_remote_move(doc_pair, doc_pair)
@@ -633,6 +634,10 @@ class Processor(EngineWorker):
                         # NXDRIVE-471: log
                         old_path = doc_pair.local_path
                         new_path = new_parent_pair.local_path + '/' + moved_name
+                        if old_path == new_path:
+                            log.debug("WRONG GUESS FOR MOVE: %r", doc_pair)
+                            self._is_remote_move(doc_pair, debug=True)
+                            self._dao.synchronize_state(doc_pair)
                         log.debug("DOC_PAIR(%r): old_path[%d][%r]: %s, new_path[%d][%r]: %s",
                             doc_pair, local_client.exists(old_path), local_client.get_remote_id(old_path), old_path,
                             local_client.exists(new_path), local_client.get_remote_id(new_path), new_path)
@@ -830,9 +835,11 @@ class Processor(EngineWorker):
         doc_pair.local_name = os.path.basename(local_info.path)
         doc_pair.last_local_updated = local_info.last_modification_time
 
-    def _is_remote_move(self, doc_pair):
+    def _is_remote_move(self, doc_pair, debug=False):
         local_parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
         remote_parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
+        if debug:
+            log.debug("is_remote_move: local:%r remote:%r", local_parent_pair, remote_parent_pair)
         return (local_parent_pair is not None
                 and remote_parent_pair is not None
                 and local_parent_pair.id != remote_parent_pair.id,

@@ -29,7 +29,7 @@ class TestEncoding(UnitTestCase):
             u'/Nom avec accents \xe9 \xe8.doc'),
             u"Contenu sans accents.")
 
-    def test_filename_with_katakana_from_server(self):
+    def test_filename_with_katakana(self):
         self.remote_client.make_file(self.workspace,
             u'Nom sans \u30bc\u30ec accents.doc',
             u"Contenu")
@@ -42,7 +42,7 @@ class TestEncoding(UnitTestCase):
         self.assertEquals(self.local_client.get_content(
             u'/Nom sans \u30bc\u30ec accents.doc'),
             u"Contenu")
-        self.assertEquals(self.local_client.get_content(
+        self.assertEquals(self.remote_client.get_content(
             u'/Avec accents \u30d7 \u793e.doc'),
             u"Contenu")
 
@@ -86,3 +86,19 @@ class TestEncoding(UnitTestCase):
         self.assertEquals(self.remote_client.get_info(
             u'/espace\xa0 et TM\u2122.doc').name,
             u'espace\xa0 et TM\u2122.doc')
+
+    def test_fileinfo_normalization(self):
+        import os
+        from nxdrive.client.local_client import FileInfo
+        from nose.plugins.skip import SkipTest
+        from nxdrive.osi import AbstractOSIntegration
+        if AbstractOSIntegration.is_mac():
+            raise SkipTest("Normalization dont work on Mac")
+        self.engine_1.stop()
+        name = u'Teste\u0301'
+        self.local_client.make_file('/', name, 'Test')
+        info = FileInfo(self.local_client.base_folder, '/' + name, False, 0)
+        # The encoding should be different - cannot trust the get_children as they use FileInfo
+        children = os.listdir(self.local_client._abspath('/'))
+        children.sort()
+        self.assertNotEqual(children[0], name)
