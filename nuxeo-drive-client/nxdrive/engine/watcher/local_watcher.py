@@ -898,11 +898,12 @@ def normalize_event_filename(filename):
     import unicodedata
     if sys.platform == 'darwin':
         normalized_filename = unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
+        return normalized_filename
     else:
         normalized_filename = unicodedata.normalize('NFC', unicode(filename))
     # Normalize name on the file system if not normalized
     # See https://jira.nuxeo.com/browse/NXDRIVE-188
-    if os.path.exists(filename) and normalized_filename != filename and not AbstractOSIntegration.is_mac():
+    if os.path.exists(filename) and normalized_filename != filename:
         log.debug('Forcing normalization of %r to %r', filename, normalized_filename)
         os.rename(filename, normalized_filename)
     return normalized_filename

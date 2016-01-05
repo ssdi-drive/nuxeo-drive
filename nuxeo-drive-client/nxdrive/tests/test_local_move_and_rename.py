@@ -328,7 +328,6 @@ class TestLocalMoveAndRename(UnitTestCase):
             original_folder_1_uid)
         self.assertEquals(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), 2)
 
-
     def test_local_rename_file_after_create(self):
         # Office 2010 and >, create a tmp file with 8 chars and move it right after
         global marker
