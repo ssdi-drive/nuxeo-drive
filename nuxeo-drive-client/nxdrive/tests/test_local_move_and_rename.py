@@ -297,7 +297,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             u'/Original Folder 1/Original File 1.1.txt').uid
         original_sub_folder_1_1_uid = remote_client.get_info(
             u'/Original Folder 1/Sub-Folder 1.1').uid
-
+        children_count = len(local_client.get_children_info(u'/Original Folder 1'))
         self.engine_1.suspend()
         # Rename a non empty folder with some content
         local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 \xe9')
@@ -324,9 +324,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         sub_folder_1_1_info = remote_client.get_info(
             original_sub_folder_1_1_uid)
         self.assertEquals(sub_folder_1_1_info.name, u"Sub-Folder 2.1")
-        self.assertEquals(sub_folder_1_1_info.parent_uid,
-            original_folder_1_uid)
-        self.assertEquals(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), 2)
+        self.assertEquals(sub_folder_1_1_info.parent_uid, original_folder_1_uid)
+        self.assertEquals(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), children_count)
 
     def test_local_rename_file_after_create(self):
         # Office 2010 and >, create a tmp file with 8 chars and move it right after
