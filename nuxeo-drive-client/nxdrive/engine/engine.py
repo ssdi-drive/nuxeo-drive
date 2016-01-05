@@ -129,7 +129,8 @@ class Engine(QObject):
                  remote_doc_client_factory=RemoteDocumentClient,
                  remote_fs_client_factory=RemoteFileSystemClient,
                  remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
-        super(Engine, self).__init__()
+        # Put manager as parent to avoid threading issue
+        super(Engine, self).__init__(manager)
 
         self.version = manager.get_version()
         self._remote_clients = dict()
@@ -438,7 +439,7 @@ class Engine(QObject):
 
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import EngineDAO
-        return EngineDAO(self._get_db_file())
+        return EngineDAO(self._get_db_file(), parent=self)
 
     def get_remote_url(self):
         server_link = self._dao.get_config("server_url", "")

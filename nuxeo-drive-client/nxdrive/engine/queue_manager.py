@@ -44,7 +44,7 @@ class QueueManager(QObject):
         '''
         Constructor
         '''
-        super(QueueManager, self).__init__()
+        super(QueueManager, self).__init__(engine)
         self._dao = dao
         self._engine = engine
         self._local_folder_queue = Queue()

@@ -144,11 +144,11 @@ class ConfigurationDAO(QObject):
     classdocs
     '''
 
-    def __init__(self, db):
+    def __init__(self, db, parent=None):
         '''
         Constructor
         '''
-        super(ConfigurationDAO, self).__init__()
+        super(ConfigurationDAO, self).__init__(parent)
         log.debug("Create DAO on %s", db)
         self._db = db
         migrate = os.path.exists(self._db)
@@ -484,13 +484,13 @@ class EngineDAO(ConfigurationDAO):
     classdocs
     '''
     newConflict = pyqtSignal(object)
-    def __init__(self, db):
+    def __init__(self, db, parent=None):
         '''
         Constructor
         '''
         self._filters = None
         self._queue_manager = None
-        super(EngineDAO, self).__init__(db)
+        super(EngineDAO, self).__init__(db, parent)
         self._filters = self.get_filters()
         self._items_count = None
         self._items_count = self.get_syncing_count()
