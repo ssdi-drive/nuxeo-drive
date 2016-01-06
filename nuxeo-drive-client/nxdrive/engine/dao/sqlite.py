@@ -4,7 +4,7 @@ import inspect
 from threading import Lock, local, current_thread
 from datetime import datetime
 from nxdrive.logging_config import get_logger
-from PyQt4.QtCore import pyqtSignal, QObject
+from PyQt4.QtCore import pyqtSignal, QObject, QCoreApplication
 log = get_logger(__name__)
 
 SCHEMA_VERSION = "schema_version"
@@ -149,6 +149,10 @@ class ConfigurationDAO(QObject):
         Constructor
         '''
         super(ConfigurationDAO, self).__init__(parent)
+        # Ensure shared component are always in the main thread
+        # TODO Fix the hack
+        if (QCoreApplication.instance()):
+            self.moveToThread(QCoreApplication.instance().thread())
         log.debug("Create DAO on %s", db)
         self._db = db
         migrate = os.path.exists(self._db)

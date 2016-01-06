@@ -131,6 +131,10 @@ class Engine(QObject):
                  remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
         # Put manager as parent to avoid threading issue
         super(Engine, self).__init__(manager)
+        # Ensure engine is always in the main thread
+        # TODO Fix the hack
+        if (QCoreApplication.instance()):
+            self.moveToThread(QCoreApplication.instance().thread())
 
         self.version = manager.get_version()
         self._remote_clients = dict()

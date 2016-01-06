@@ -1,4 +1,4 @@
-from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer, QCoreApplication
 from Queue import Queue, Empty
 from nxdrive.logging_config import get_logger
 from threading import Lock, local
@@ -45,6 +45,10 @@ class QueueManager(QObject):
         Constructor
         '''
         super(QueueManager, self).__init__(engine)
+        # Ensure shared component are always in the main thread
+        # TODO Fix the hack
+        if (QCoreApplication.instance()):
+            self.moveToThread(QCoreApplication.instance().thread())
         self._dao = dao
         self._engine = engine
         self._local_folder_queue = Queue()
