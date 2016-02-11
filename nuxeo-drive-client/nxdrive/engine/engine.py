@@ -215,6 +215,7 @@ class Engine(QObject):
                 self.syncStarted.emit(queue_size)
 
     def reinit(self):
+        log.debug('Reinitializing engine %s', self.get_uid())
         started = not self._stopped
         if started:
             self.stop()
@@ -664,7 +665,7 @@ class Engine(QObject):
         self._stop.emit()
         for thread in self._threads:
             if not thread.wait(5000):
-                log.warn("Thread is not responding - terminate it")
+                log.warn("Thread %r (%s) is not responding - terminate it", thread.worker._thread_id, thread.worker._name)
                 thread.terminate()
         if not self._local_watcher._thread.wait(5000):
             self._local_watcher._thread.terminate()

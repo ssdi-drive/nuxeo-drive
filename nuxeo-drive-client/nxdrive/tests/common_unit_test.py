@@ -117,6 +117,12 @@ class TestQApplication(QtCore.QCoreApplication):
         log.trace("No remote changes slot for: %s", uid)
         self._test._no_remote_changes[uid] = True
 
+    @QtCore.pyqtSlot()
+    def root_deleted(self):
+        uid = self.sender().get_uid()
+        log.debug('Root deleted slot for %s', uid)
+        self._test._wait_root_deleted[uid] = False
+
 
 class UnitTestCase(unittest.TestCase):
 
@@ -241,10 +247,12 @@ class UnitTestCase(unittest.TestCase):
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
         self.engine_1.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
         self.engine_1.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
+        self.engine_1.rootDeleted.connect(self.app.root_deleted)
         self.engine_2.syncCompleted.connect(self.app.sync_completed)
         self.engine_2.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
         self.engine_2.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
         self.engine_2.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
+        self.engine_2.rootDeleted.connect(self.app.root_deleted)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
@@ -305,6 +313,7 @@ class UnitTestCase(unittest.TestCase):
         self._wait_remote_scan = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
         self._remote_changes_count = {self.engine_1.get_uid(): 0, self.engine_2.get_uid(): 0}
         self._no_remote_changes = {self.engine_1.get_uid(): False, self.engine_2.get_uid(): False}
+        self._wait_root_deleted = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
 
     def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True,
                   wait_for_engine_1=True, wait_for_engine_2=False, wait_win=False, enforce_errors=True):
@@ -386,6 +395,18 @@ class UnitTestCase(unittest.TestCase):
                 return
             timeout = timeout - 1
         self.fail("Wait for remote scan timeout expired")
+
+    def wait_root_deleted(self, timeout=3, wait_for_engine_1=True, wait_for_engine_2=False):
+        log.debug("Wait for root deleted")
+        self._wait_root_deleted = {self.engine_1.get_uid(): wait_for_engine_1,
+                                   self.engine_2.get_uid(): wait_for_engine_2}
+        while timeout > 0:
+            sleep(1)
+            if sum(self._wait_root_deleted.values()) == 0:
+                log.debug("Ended wait for root deleted")
+                return
+            timeout = timeout - 1
+        self.fail("Wait for root deleted timeout expired")
 
     def is_profiling(self):
         return 'DRIVE_YAPPI' in os.environ and yappi is not None

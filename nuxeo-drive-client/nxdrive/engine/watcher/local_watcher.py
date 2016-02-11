@@ -748,10 +748,10 @@ class LocalWatcher(EngineWorker):
         if evt.event_type == 'modified' or evt.event_type == 'created':
             pass
         if evt.event_type == 'moved':
-            log.warn("Root has been moved to ")
+            log.warn("Root has been moved from %s to %s", evt.src_path, evt.dest_path)
             self.rootMoved.emit(evt.dest_path)
         if evt.event_type == 'deleted':
-            log.warn("Root has been deleted")
+            log.warn("Root has been deleted from %s", evt.src_path)
             self.rootDeleted.emit()
 
     def handle_watchdog_event(self, evt):
@@ -766,7 +766,7 @@ class LocalWatcher(EngineWorker):
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)
             if len(rel_path) == 0 or rel_path == '/':
-                self.handle_watchdog_root_event(evt)
+                # Ignore events on root folder, they are handled by DriveFSRootEventHandler
                 return
             file_name = os.path.basename(src_path)
             parent_path = os.path.dirname(src_path)
