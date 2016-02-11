@@ -203,7 +203,6 @@ class Application(SimpleApplication):
             self.manager.unbind_engine(engine.get_uid())
         elif res == "RECREATE":
             engine.reinit()
-            engine.start()
 
     @QtCore.pyqtSlot(str)
     def _root_moved(self, new_path):
@@ -221,7 +220,6 @@ class Application(SimpleApplication):
             self.manager.unbind_engine(engine.get_uid())
         elif res == "RECREATE":
             engine.reinit()
-            engine.start()
         elif res == "MOVE":
             engine.set_local_folder(unicode(new_path))
             engine.start()

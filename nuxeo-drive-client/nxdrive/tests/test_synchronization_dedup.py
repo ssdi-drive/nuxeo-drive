@@ -88,7 +88,6 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.assertEquals(len(remote.get_children_info(self.workspace_1)), 2)
         # Simulate the uninstall
         self.engine_1.reinit()
-        self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.assertEquals(len(local.get_children_info('/')), 2)
         self.assertEquals(len(remote.get_children_info(self.workspace_1)), 2)
@@ -120,7 +119,6 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.engine_1.stop()
         # Simulate the uninstall
         self.engine_1.reinit()
-        self.engine_1.start()
         self.assertEquals(len(local.get_children_info('/')), 2)
         self.assertEquals(len(local.get_children_info(test_path)), 1)
         self.assertEquals(len(local.get_children_info(Test_path)), 1)
