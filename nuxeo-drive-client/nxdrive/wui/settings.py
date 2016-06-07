@@ -26,6 +26,7 @@ import urllib2
 from urllib import urlencode
 
 DRIVE_STARTUP_PAGE = 'drive_login.jsp'
+NUXEO_TOKEN_PAGE = 'acquire_token.jsp'
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30
 
 
@@ -182,12 +183,20 @@ class WebSettingsApi(WebDriveApi):
             if not server_url.endswith('/'):
                 server_url += '/'
 
+            page = NUXEO_TOKEN_PAGE
             # Connect to startup page
-            status = self._connect_startup_page(server_url)
+            status = self._connect_startup_page(server_url, page)
             if status == 404 and not server_url.endswith("nuxeo/"):
-                status = self._connect_startup_page(server_url + "nuxeo/")
+                status = self._connect_startup_page(server_url + "nuxeo/", page)
                 if status < 400 or status in (401, 500, 503):
                     server_url = server_url + "nuxeo/"
+            if status == 404:
+                page = DRIVE_STARTUP_PAGE
+                status = self._connect_startup_page(server_url, page)
+                if status == 404 and not server_url.endswith("nuxeo/"):
+                    status = self._connect_startup_page(server_url + "nuxeo/", page)
+                    if status < 400 or status in (401, 500, 503):
+                        server_url = server_url + "nuxeo/"
             # Server will send a 401 in case of anonymous user configuration
             # Should maybe only check for 404
             if status < 400 or status in (401, 500, 503):
@@ -201,7 +210,7 @@ class WebSettingsApi(WebDriveApi):
                     'engine_name': engine_name,
                     'engine_type': engine_type
                 }
-                url = self._get_authentication_url(server_url)
+                url = self._get_authentication_url(server_url, page)
                 log.debug('Web authentication is available on server %s, opening login window with URL %s',
                           server_url, url)
                 self.openAuthenticationDialog.emit(url, callback_params)
@@ -223,8 +232,8 @@ class WebSettingsApi(WebDriveApi):
         if not self._manager.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
 
-    def _connect_startup_page(self, server_url):
-        url = server_url + DRIVE_STARTUP_PAGE
+    def _connect_startup_page(self, server_url, page=NUXEO_TOKEN_PAGE):
+        url = server_url + page
         try:
             proxy_handler = get_proxy_handler(self._manager.get_proxies())
             opener = urllib2.build_opener(proxy_handler)
@@ -275,7 +284,7 @@ class WebSettingsApi(WebDriveApi):
         dialog.setWindowModality(QtCore.Qt.NonModal)
         dialog.show()
 
-    def _get_authentication_url(self, server_url):
+    def _get_authentication_url(self, server_url, page=NUXEO_TOKEN_PAGE):
         token_params = {
             'deviceId': self._manager.get_device_id(),
             'applicationName': self._manager.get_appname(),
@@ -286,7 +295,7 @@ class WebSettingsApi(WebDriveApi):
             token_params['deviceDescription'] = device_description
         # Force login in case of anonymous user configuration
         token_params['forceAnonymousLogin'] = 'true'
-        return server_url + DRIVE_STARTUP_PAGE + '?' + urlencode(token_params)
+        return server_url + page + '?' + urlencode(token_params)
 
     @QtCore.pyqtSlot(result=str)
     def get_new_local_folder(self):
