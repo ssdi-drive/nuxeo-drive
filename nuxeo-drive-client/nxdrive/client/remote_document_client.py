@@ -313,7 +313,11 @@ class RemoteDocumentClient(BaseAutomationClient):
 
         # XXX: we need another roundtrip just to fetch the parent uid...
         if parent_uid is None and fetch_parent_uid:
-            parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
+            if "parentRef" in doc and doc["parentRef"]:
+                # In case of shared folders, self.fetch on parent folder will definitely fail
+                parent_uid = doc["parentRef"]
+            else:
+                parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
 
         # Normalize using NFC to make the tests more intuitive
         if 'uid:major_version' in props and 'uid:minor_version' in props:
