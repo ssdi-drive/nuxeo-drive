@@ -896,7 +896,7 @@ class Manager(QtCore.QObject):
                     if self._engine_definitions:
                         # Check if every server url can be resolved to some proxy server
                         for engine_def in self._engine_definitions:
-                            url = self._engines[engine_def.uid].get_remote_url()
+                            url = self._engines[engine_def.uid].get_server_url()
                             ret = resolver.get_proxies(url)
                     else:
                         ret = resolver.get_proxies(url)
@@ -933,11 +933,10 @@ class Manager(QtCore.QObject):
             self.proxies["default"], self.proxy_exceptions = get_proxies_for_handler(
                                                                 proxy_settings)
             log.trace("Setting self.proxies['default'] = %r", self.proxies["default"])
-            self.proxyUpdated.emit(proxy_settings)
         elif proxy_settings.config == 'Automatic':
             if self._engine_definitions:
                 for engine_def in self._engine_definitions:
-                    server_url = self._engines[engine_def.uid].get_remote_url()
+                    server_url = self._engines[engine_def.uid].get_server_url()
                     log.warn("Finding Proxy (engine_uid: %r) for server_url: %s", engine_def.uid, server_url)
                     self.proxies[server_url] = proxy_settings.get_proxies_automatic(server_url)
                     log.warn("Setting self.proxies[%r] = %r", server_url, self.proxies[server_url])
@@ -945,10 +944,10 @@ class Manager(QtCore.QObject):
                 log.warn("No Engine connected yet. So configuring default proxy against www.google.com")
                 self.proxies["default"] = proxy_settings.get_proxies_automatic("http://www.google.com")
                 log.trace("Setting self.proxies['default'] = %r", self.proxies["default"])
-            self.proxyUpdated.emit(proxy_settings)
         else:
             log.trace("Setting self.proxies['default']: {}")
             self.proxies["default"], self.proxy_exceptions = {}, None
+        self.proxyUpdated.emit(proxy_settings)
 
     def get_proxies(self, server_url):
         log.warn("Manager.get_proxies(server_url=%r)", server_url)
@@ -962,7 +961,7 @@ class Manager(QtCore.QObject):
             if server_url not in self.proxies:
                 log.warn("New Server. server_url: %r is not found in self.proxies", server_url)
                 self.proxies[server_url] = proxy_settings.get_proxies_automatic(server_url)
-            log.warn("returning proxies: %r", self.proxies[server_url], server_url)
+            log.warn("returning proxies: %r", self.proxies[server_url])
             return self.proxies[server_url]
         # No proxy as fallback
         log.warn("returning proxies (fallback): {}")
