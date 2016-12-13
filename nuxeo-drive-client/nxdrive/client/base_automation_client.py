@@ -251,8 +251,9 @@ class BaseAutomationClient(BaseClient):
             url, headers, cookies)
         req = urllib2.Request(url, headers=headers)
         try:
-            response = json.loads(self.opener.open(
-                req, timeout=self.timeout).read())
+            conn = self.opener.open(req, timeout=self.timeout)
+            data = conn.read()
+            response = json.loads(data)
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id, e.code)
@@ -289,6 +290,8 @@ class BaseAutomationClient(BaseClient):
             e.msg = msg
             raise e
         except Exception as e:
+            import traceback
+            print "%s" % traceback.format_exc()
             msg = base_error_message
             if hasattr(e, 'msg'):
                 msg = msg + ": " + e.msg
