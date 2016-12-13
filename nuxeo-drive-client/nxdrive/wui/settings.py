@@ -225,6 +225,7 @@ class WebSettingsApi(WebDriveApi):
             raise FolderAlreadyUsed()
 
     def _connect_startup_page(self, server_url):
+        log.warn("Settings._connect_startup_page(server_url=%r)", server_url)
         url = server_url + DRIVE_STARTUP_PAGE
         try:
             proxy_handler = get_proxy_handler(self._manager.get_proxies(server_url=server_url))

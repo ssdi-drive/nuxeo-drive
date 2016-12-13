@@ -719,9 +719,10 @@ class Engine(QObject):
 
     def update_password(self, password):
         self._load_configuration()
+        log.warn("Engine.update_password(%r): Creating Remote Document Client before updating the password", password)
         nxclient = self.remote_doc_client_factory(
             self._server_url, self._remote_user, self._manager.device_id,
-            self._manager.get_version(), proxies=self._manager.proxies,
+            self._manager.get_version(), proxies=self._manager.get_proxies(self._server_url),
             proxy_exceptions=self._manager.proxy_exceptions,
             password=str(password), timeout=self._handshake_timeout)
         self._remote_token = nxclient.request_token()
@@ -742,6 +743,7 @@ class Engine(QObject):
         self.start()
 
     def bind(self, binder):
+        log.warn("Engine.bind(binder=%r): creating Remote Document Client", binder)
         check_credential = True
         if hasattr(binder, 'no_check') and binder.no_check:
             check_credential = False
@@ -925,13 +927,13 @@ class Engine(QObject):
 
     def get_remote_client(self, filtered=True):
         """Return a client for the FileSystem abstraction."""
+        log.warn("Engine.get_remote_client(filtered=%r)", filtered)
         if self._invalid_credentials:
             return None
         cache = self._get_client_cache()
 
         cache_key = (self._manager.device_id, filtered)
         remote_client = cache.get(cache_key)
-        log.warn("Enginer.get_remote_client. proxies for %r is %r", self.get_uid(), self._manager.get_proxies(server_url=self._server_url))
         if remote_client is None:
             if filtered:
                 remote_client = self.remote_filtered_fs_client_factory(
@@ -955,6 +957,7 @@ class Engine(QObject):
         return remote_client
 
     def get_remote_doc_client(self, repository=DEFAULT_REPOSITORY_NAME, base_folder=None):
+        log.warn("Engine.get_remote_doc_client(repository=%r, base_folder=%r)", repository, base_folder)
         if self._invalid_credentials:
             return None
         cache = self._get_client_cache()
