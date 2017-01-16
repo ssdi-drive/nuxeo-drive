@@ -145,9 +145,9 @@ class TestWindows(UnitTestCase):
         # Test nuxeo drive setup on long path (more than 260 chars)
         # on windows
         self.engine_1.stop()
+        self.engine_1.reinit()
         # In MAC, avoid permission denied error
         self.engine_1.get_local_client().clean_xattr_root()
-        self.engine_1.reinit()
         # NXDRIVE 689: Fix error when adding a new account when installation
         # path is greater than 245 characters
         test_folder_len = 245 - len(str(self.local_nxdrive_folder_1))
