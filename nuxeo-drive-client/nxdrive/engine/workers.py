@@ -7,6 +7,7 @@ from time import sleep, time
 from nxdrive.engine.activity import Action, IdleAction
 from nxdrive.logging_config import get_logger
 from urllib2 import HTTPError
+import sys
 
 log = get_logger(__name__)
 
@@ -31,6 +32,7 @@ class Worker(QObject):
     _thread_id = None
     _engine = None
     _pause = False
+    _is_debug = False
     actionUpdate = pyqtSignal(object)
 
     def __init__(self, thread=None, name=None):
@@ -45,6 +47,8 @@ class Worker(QObject):
         self._name = name
         self._running = False
         self._thread.terminated.connect(self._terminated)
+        if self._is_debug:
+            self.trace_func = sys.gettrace()
 
     def is_started(self):
         return self._continue
@@ -115,9 +119,13 @@ class Worker(QObject):
         Throw a ThreadInterrupt if the stopping of the thread has been order either by stop or quit
         """
         QCoreApplication.processEvents()
+        if self._is_debug and sys.gettrace() != self.trace_func:
+            sys.settrace(self.trace_func)
         # Handle thread pause
         while (self._pause and self._continue):
             QCoreApplication.processEvents()
+            if self._is_debug and sys.gettrace() != self.trace_func:
+                sys.settrace(self.trace_func)
             sleep(0.01)
         # Handle thread interruption
         if not self._continue:

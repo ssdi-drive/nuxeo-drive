@@ -22,6 +22,7 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive import __version__
 from nxdrive.utils import ENCODING, OSX_SUFFIX
+from nxdrive.engine.workers import Worker
 
 log = get_logger(__name__)
 
@@ -293,6 +294,7 @@ class Manager(QtCore.QObject):
         self.remote_watcher_delay = options.delay
         self._nofscheck = options.nofscheck
         self._debug = options.debug
+        Worker._is_debug = options.debug
         self._engine_definitions = None
         self._engine_types = dict()
         from nxdrive.engine.next.engine_next import EngineNext
